@@ -181,6 +181,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
     <div class="pi"><strong>Policy Type:</strong><span id="pi-policy">—</span></div>
     <div class="pi"><strong>Vehicle Type:</strong><span id="pi-vt">—</span></div>
     <div class="pi"><strong>Engine / CC:</strong><span id="pi-cc">—</span></div>
+    <div class="pi"><strong>GVW (Kg):</strong><span id="pi-gvw">—</span></div>
     <div class="pi"><strong>Reg. Date:</strong><span id="pi-rdate">—</span></div>
     <div class="pi"><strong>Risk Start Date:</strong><span id="pi-rsdate">—</span></div>
     <div class="pi"><strong>Vehicle Age:</strong><span id="pi-age">—</span></div>
@@ -1051,12 +1052,14 @@ function calc(){
   T('pi-zone','Zone '+z);
   T('pi-idv',policy==='satp'?'—':'₹ '+(N('newidv')||0).toLocaleString('en-IN'));
   T('pi-ncb',policy==='satp'?'—':SL('ncbd')+'%');
+  const gvwVTs=['gcv4','3gcv','bus','sbus','3pcv','taxi'];
+  T('pi-gvw', gvwVTs.includes(VT) && gvw ? gvw+' Kg' : '—');
   const addons=[];
   if(ND&&policy!=='satp')addons.push('Nil Dep');
   if(EP&&policy!=='satp')addons.push('Eng.Prot');
   if(CM&&policy!=='satp')addons.push('Consumables');
   if(RTI&&policy!=='satp')addons.push('RTI');
-  if(LK&&policy!=='satp')addons.push('LossKey');
+  if((parseFloat(SL('LK'))||0)>0&&policy!=='satp')addons.push('Loss of Key');
   if(RSA&&policy!=='satp')addons.push('RSA');
   if(NP&&policy!=='satp')addons.push('NCBProt');
   if(I23&&policy!=='satp')addons.push('IMT-23');
@@ -1123,83 +1126,71 @@ function doPrint(){
 
 async function generatePdfBlob(){
   calc();
-  const el=G('pdf-page');
 
-  // Inject a temporary style tag that mimics @media print CSS
-  const tmpStyle=document.createElement('style');
-  tmpStyle.id='pdf-capture-style';
-  tmpStyle.textContent=`
-    #pdf-page{
-      display:block!important;position:fixed!important;left:-9999px!important;top:0!important;
-      width:794px!important;background:#fff!important;color:#0f172a!important;
-      font-family:'Nunito',sans-serif!important;padding:24px!important;box-sizing:border-box!important;
-    }
-    #pdf-head{background:#1a4a8a!important;color:#fff!important;padding:12px 0!important;
-      border-radius:6px 6px 0 0!important;margin-bottom:20px!important;text-align:center!important;}
-    #pdf-head h2{font-family:'Rajdhani',sans-serif!important;font-size:22px!important;font-weight:700!important;
-      color:#fff!important;letter-spacing:1px!important;margin:0!important;text-transform:uppercase!important;}
-    #pdf-info{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px 30px!important;
-      background:#f8fafc!important;border:1px solid #cbd5e1!important;border-left:4px solid #1a4a8a!important;
-      padding:18px!important;font-size:13px!important;color:#1e293b!important;margin-bottom:25px!important;
-      border-radius:0 6px 6px 0!important;}
-    #pdf-info .pi{color:#1e293b!important;}
-    #pdf-info .pi strong{display:inline-block!important;width:150px!important;font-size:11px!important;
-      color:#64748b!important;text-transform:uppercase!important;letter-spacing:1px!important;}
-    #pdf-qt{width:100%!important;border-collapse:collapse!important;font-size:13px!important;
-      font-family:'Nunito',sans-serif!important;margin-bottom:0!important;}
-    #pdf-qt thead th{font-weight:700!important;text-align:center!important;padding:10px!important;
-      border:1px solid #94a3b8!important;color:#1a4a8a!important;background:#e2e8f0!important;font-size:15px!important;}
-    #pdf-qt td{padding:8px 10px!important;border:1px solid #cbd5e1!important;color:#334155!important;font-size:13px!important;}
-    #pdf-qt td.lb{color:#0f172a!important;}
-    #pdf-qt td.vl{text-align:right!important;font-weight:600!important;color:#0f172a!important;white-space:nowrap!important;}
-    #pdf-qt td.sp{width:1px!important;background:#cbd5e1!important;padding:0!important;border:none!important;}
-    #pdf-qt tfoot tr.tr1 td{font-weight:800!important;background:#f1f5f9!important;
-      border-top:2px solid #1a4a8a!important;font-size:15px!important;color:#0f172a!important;padding:12px!important;}
-    #pdf-qt tfoot tr.tr2 td{font-size:11px!important;color:#64748b!important;background:#fff!important;padding:8px 10px!important;}
-    #pdf-grand{background:#eff6ff!important;border:2px solid #1a4a8a!important;border-top:none!important;
-      text-align:center!important;padding:16px!important;font-family:'Rajdhani',sans-serif!important;
-      font-size:22px!important;font-weight:700!important;color:#1a4a8a!important;
-      border-radius:0 0 6px 6px!important;letter-spacing:.5px!important;margin-bottom:20px!important;}
-    #pdf-disc{font-size:12px!important;color:#64748b!important;text-align:center!important;
-      padding:15px 0!important;border-top:1px solid #cbd5e1!important;margin-top:15px!important;line-height:1.6!important;}
+  // Capture exact print CSS (same as @media print) and apply to an iframe
+  // so html2canvas renders it identically to Export to PDF / Print
+  const printCSS=`
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#fff;color:#0f172a;font-family:'Nunito',sans-serif;padding:10mm;}
+    #pdf-head{background:#1a4a8a;color:#fff;padding:12px 0;border-radius:6px 6px 0 0;margin-bottom:20px;text-align:center;}
+    #pdf-head h2{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:1px;margin:0;text-transform:uppercase;}
+    #pdf-info{display:grid;grid-template-columns:1fr 1fr;gap:12px 30px;background:#f8fafc;border:1px solid #cbd5e1;border-left:4px solid #1a4a8a;padding:18px;font-size:13px;color:#1e293b;margin-bottom:25px;border-radius:0 6px 6px 0;}
+    #pdf-info .pi strong{display:inline-block;width:150px;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;}
+    #pdf-qt{width:100%;border-collapse:collapse;font-size:13px;font-family:'Nunito',sans-serif;margin-bottom:0;}
+    #pdf-qt thead th{font-weight:700;text-align:center;padding:10px;border:1px solid #94a3b8;color:#1a4a8a;background:#e2e8f0;font-size:15px;}
+    #pdf-qt td{padding:8px 10px;border:1px solid #cbd5e1;color:#334155;font-size:13px;}
+    #pdf-qt td.lb{color:#0f172a;}
+    #pdf-qt td.vl{text-align:right;font-weight:600;color:#0f172a;white-space:nowrap;}
+    #pdf-qt td.sp{width:1px;background:#cbd5e1;padding:0;border:none;}
+    #pdf-qt tfoot tr.tr1 td{font-weight:800;background:#f1f5f9;border-top:2px solid #1a4a8a;font-size:15px;color:#0f172a;padding:12px;}
+    #pdf-qt tfoot tr.tr2 td{font-size:11px;color:#64748b;background:#fff;padding:8px 10px;}
+    #pdf-grand{background:#eff6ff;border:2px solid #1a4a8a;border-top:none;text-align:center;padding:16px;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#1a4a8a;border-radius:0 0 6px 6px;letter-spacing:.5px;margin-bottom:20px;}
+    #pdf-disc{font-size:12px;color:#64748b;text-align:center;padding:15px 0;border-top:1px solid #cbd5e1;margin-top:15px;line-height:1.6;}
   `;
-  document.head.appendChild(tmpStyle);
 
-  // Wait for styles to apply
-  await new Promise(r=>setTimeout(r,400));
+  // Build iframe with the pdf-page HTML and print styles as screen styles
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:fixed;top:0;left:0;width:794px;height:1123px;border:none;visibility:hidden;z-index:-9999;';
+  document.body.appendChild(iframe);
+  const iDoc=iframe.contentDocument||iframe.contentWindow.document;
+  iDoc.open();
+  iDoc.write(`<!DOCTYPE html><html><head><style>${printCSS}</style></head><body>${G('pdf-page').innerHTML}</body></html>`);
+  iDoc.close();
 
-  const canvas=await html2canvas(el,{
-    scale:2, useCORS:true, backgroundColor:'#ffffff',
-    width:794, windowWidth:794,
-    scrollX:0, scrollY:0,
-    onclone:(cloned)=>{
-      // Make sure the cloned element is visually shown
-      cloned.getElementById('pdf-page').style.cssText=
-        'display:block;position:static;left:0;top:0;width:794px;background:#fff;padding:24px;box-sizing:border-box;';
-    }
-  });
+  // Wait for fonts/layout to settle
+  await new Promise(r=>setTimeout(r,600));
 
-  // Restore
-  document.head.removeChild(tmpStyle);
-  el.style.display='none';
-  const imgData=canvas.toDataURL('image/jpeg',0.92);
+  const iBody=iDoc.body;
   const {jsPDF}=window.jspdf;
+  const canvas=await html2canvas(iBody,{
+    scale:2,useCORS:true,backgroundColor:'#ffffff',
+    width:774,windowWidth:794,
+    scrollX:0,scrollY:0
+  });
+  document.body.removeChild(iframe);
+
+  const imgData=canvas.toDataURL('image/jpeg',0.97);
   const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const pW=pdf.internal.pageSize.getWidth();
   const pH=pdf.internal.pageSize.getHeight();
-  const imgW=pW-10;
-  const imgH=(canvas.height*imgW)/canvas.width;
-  let y=5;
-  if(imgH<=pH-10){
-    pdf.addImage(imgData,'JPEG',5,y,imgW,imgH);
+  const margin=10;
+  const imgW=pW-margin*2;
+  const imgH=(canvas.height/canvas.width)*imgW;
+
+  if(imgH<=pH-margin*2){
+    pdf.addImage(imgData,'JPEG',margin,margin,imgW,imgH,'','FAST');
   } else {
-    let remaining=imgH,srcY=0;
-    while(remaining>0){
-      const sliceH=Math.min(remaining,pH-10);
-      pdf.addImage(imgData,'JPEG',5,y,imgW,imgH,undefined,'FAST',0,srcY/imgH);
-      remaining-=sliceH;
-      srcY+=sliceH;
-      if(remaining>0)pdf.addPage();
+    const pageImgH=pH-margin*2;
+    const totalPages=Math.ceil(imgH/pageImgH);
+    for(let pg=0;pg<totalPages;pg++){
+      if(pg>0)pdf.addPage();
+      const sy=(pg*pageImgH/imgH)*canvas.height;
+      const sh=Math.min((pageImgH/imgH)*canvas.height,canvas.height-sy);
+      const tempC=document.createElement('canvas');
+      tempC.width=canvas.width;tempC.height=Math.round(sh);
+      tempC.getContext('2d').drawImage(canvas,0,Math.round(sy),canvas.width,Math.round(sh),0,0,canvas.width,Math.round(sh));
+      pdf.addImage(tempC.toDataURL('image/jpeg',0.97),'JPEG',margin,margin,imgW,(Math.round(sh)/canvas.width)*imgW,'','FAST');
     }
   }
   return pdf.output('blob');

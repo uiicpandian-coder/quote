@@ -114,6 +114,30 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
 
 @media(max-width:1070px){.mg{grid-template-columns:1fr;}.qp{position:static;}}
 @media(max-width:620px){.fr.c3,.fr.c4{grid-template-columns:1fr 1fr;}.cbg3{grid-template-columns:1fr 1fr;}}
+.brst{background:rgba(232,64,64,.15);border:1px solid rgba(232,64,64,.4);border-radius:18px;
+  padding:4px 13px;font-size:11px;color:#e84040;font-weight:700;letter-spacing:1px;cursor:pointer;
+  transition:all .2s;}
+.brst:hover{background:rgba(232,64,64,.3);}
+/* History Panel */
+.hist-wrap{max-width:1400px;margin:0 auto;padding:0 20px 16px;}
+.hist-card{background:rgba(255,255,255,.04);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:13px;margin-top:0;}
+.hist-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:6px;
+  font-size:11.5px;flex-wrap:wrap;transition:all .2s;}
+.hist-row:last-child{margin-bottom:0;}
+.hist-row:hover{border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.05);}
+.hist-num{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--ac);min-width:22px;font-size:13px;}
+.hist-info{flex:1;color:#ccd4ee;}
+.hist-info b{color:#fff;}
+.hist-total{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:#34d399;white-space:nowrap;}
+.hist-edit{padding:4px 11px;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.4);
+  border-radius:6px;color:var(--ac);font-size:10px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;}
+.hist-edit:hover{background:rgba(245,166,35,.35);}
+.hist-del{padding:4px 8px;background:rgba(232,64,64,.1);border:1px solid rgba(232,64,64,.3);
+  border-radius:6px;color:#e84040;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;}
+.hist-del:hover{background:rgba(232,64,64,.3);}
+.hist-ts{font-size:9px;color:#4a5a6a;white-space:nowrap;}
 
 /* ═══════════════════════ PDF / PRINT ═══════════════════════ */
 @media print{
@@ -122,7 +146,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
 
   /* Prevent extra pages & completely wipe out the dark theme */
   html, body{min-height:auto!important;height:auto!important;overflow:visible!important;background:#fff!important;color:#0f172a!important;margin:0!important;padding:0!important;}
-  header,#app-form,.qp,.bcl,.bpf,.dsc,#toast{display:none!important;}
+  header,#app-form,.qp,.bcl,.bpf,.dsc,#toast,.hist-wrap{display:none!important;}
 
   /* PDF wrapper */
   #pdf-page{display:block!important; padding:0; page-break-after:auto;}
@@ -215,7 +239,10 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
         <h1>UNITED INDIA INSURANCE COMPANY LIMITED QUOTATION</h1>
       </div>
     </div>
-    <div class="hb">💻 Developed by Pandian R(UIIIC)</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="brst" onclick="resetAllFields()" title="Reset all fields to default">🔄 Reset</button>
+      <div class="hb">💻 Developed by Pandian R(UIIIC)</div>
+    </div>
   </div>
 </header>
 
@@ -317,16 +344,14 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
         </div>
       </div>
     </div>
-    <div class="fr c3">
+    <div class="fr c2">
       <div class="fg" id="fg-oldidv">
-        <label>Ex-Showroom / Old IDV (₹) <span style="color:#e84040">*</span></label>
-        <input type="number" id="oldidv" placeholder="e.g. 800000" min="1" onchange="cErr('oldidv');calcIDV()">
-        <span class="em" id="e-oldidv">IDV / Ex-Showroom is required</span>
+        <label>IDV (₹) <span style="color:#e84040">*</span></label>
+        <input type="number" id="oldidv" placeholder="Enter IDV e.g. 500000" min="1" onchange="cErr('oldidv');calc()">
+        <span class="em" id="e-oldidv">IDV is required</span>
       </div>
-      <div class="fg" id="fg-dep"><label>Depreciation %</label><input type="number" id="dep" value="10" placeholder="auto" onchange="calcIDV()"></div>
-      <div class="fg" id="fg-newidv"><label>New IDV (₹)</label><input type="number" id="newidv" placeholder="auto-calculated" onchange="calc()"></div>
     </div>
-    <div class="idvn" id="idvn">ℹ️ Enter Ex-Showroom or Old IDV. Depreciation applied automatically from vehicle age.</div>
+    <div class="idvn" id="idvn">ℹ️ Enter the Insured Declared Value (IDV) directly.</div>
     <div class="fr c4">
       <div class="fg" id="fg-odd">
         <label>Detariff Discount % <span id="dtd-limit" style="font-size:10px;color:#d97706;font-weight:700;float:right;margin-top:1px;"></span></label>
@@ -528,7 +553,19 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
   </div>
 </div>
 
-</div></div><script>
+</div></div>
+
+<!-- ═══════ QUOTE HISTORY PANEL ═══════ -->
+<div class="hist-wrap">
+  <div class="card" style="margin-top:16px;">
+    <div class="st">📜 Recent Quotes (Last 6)</div>
+    <div id="hist-list" class="hist-card">
+      <div style="text-align:center;padding:12px;color:#556688;font-size:12px;">No quotes saved yet. Calculate a premium to save a quote.</div>
+    </div>
+  </div>
+</div>
+
+<script>
 'use strict';
 let VT='pc';
 let policy='package';
@@ -566,14 +603,12 @@ function swPolicy(p,btn){
 }
 
 function updateFormFieldsState(){
-  const odFields=['oldidv','dep','newidv','odd','ncbd','ND','EP','CM','RTI','LK','RSAc','NPc','imt23','OT','EVP','ELA','TrOD','EMP','tyreV','towAmt'];
+  const odFields=['oldidv','odd','ncbd','ND','EP','CM','RTI','LK','RSAc','NPc','imt23','OT','EVP','ELA','TrOD','EMP','tyreV','towAmt'];
   const tpFields=['paodt','lld','nopd','pdSI','upaSI','nopp','llnfpp','platpa'];
   if(policy==='package'){
     odFields.forEach(id=>{const el=G(id);if(el)el.removeAttribute('disabled');});
     tpFields.forEach(id=>{const el=G(id);if(el)el.removeAttribute('disabled');});
     G('fg-oldidv').classList.remove('disabled-field');
-    G('fg-dep').classList.remove('disabled-field');
-    G('fg-newidv').classList.remove('disabled-field');
     G('idvn').classList.remove('disabled-field');
     G('fg-odd').classList.remove('disabled-field');
     G('fg-ncbd').classList.remove('disabled-field');
@@ -587,8 +622,6 @@ function updateFormFieldsState(){
     odFields.forEach(id=>{const el=G(id);if(el)el.removeAttribute('disabled');});
     tpFields.forEach(id=>{const el=G(id);if(el)el.setAttribute('disabled','true');});
     G('fg-oldidv').classList.remove('disabled-field');
-    G('fg-dep').classList.remove('disabled-field');
-    G('fg-newidv').classList.remove('disabled-field');
     G('idvn').classList.remove('disabled-field');
     G('fg-odd').classList.remove('disabled-field');
     G('fg-ncbd').classList.remove('disabled-field');
@@ -602,8 +635,6 @@ function updateFormFieldsState(){
     odFields.forEach(id=>{const el=G(id);if(el)el.setAttribute('disabled','true');});
     tpFields.forEach(id=>{const el=G(id);if(el)el.removeAttribute('disabled');});
     G('fg-oldidv').classList.add('disabled-field');
-    G('fg-dep').classList.add('disabled-field');
-    G('fg-newidv').classList.add('disabled-field');
     G('idvn').classList.add('disabled-field');
     G('fg-odd').classList.add('disabled-field');
     G('fg-ncbd').classList.add('disabled-field');
@@ -765,15 +796,6 @@ function isNew(){
 }
 function onDC(){
   cErr('rdate');cErr('rsdate');
-  const age=getAge();
-  let dp=age<=0?0:age<=0.5?5:age<=1?15:age<=2?20:age<=3?30:age<=4?40:50;
-  G('dep').value=dp;
-  calcIDV();
-}
-function calcIDV(){
-  const o=N('oldidv'),d=N('dep'),n=Math.round(o*(1-d/100));
-  G('newidv').value=n||'';
-  G('idvn').textContent=`IDV after ${d}% depreciation: ₹ ${n.toLocaleString('en-IN')}`;
   calc();
 }
 
@@ -794,7 +816,7 @@ function validate(){
     // Check Discount Limits
     const odd = N('odd');
     const isRoApproved = CK('isRoApproved');
-    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('newidv'), isFleet, isObsolete, isImported);
+    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported);
     
     const maxLimit = isRoApproved ? limits.ro : limits.off;
     
@@ -919,7 +941,7 @@ function upA(nopp,vt,isnew){
 /* ─── MAIN CALCULATE ─── */
 function calc(){
   const age=getAge(),isnew=isNew(),z=SL('zone'),et=parseInt(SL('etype'))||0;
-  const cc=N('cc'),gvw=N('gvw'),nps=IV('nps'),idv=N('newidv');
+  const cc=N('cc'),gvw=N('gvw'),nps=IV('nps'),idv=N('oldidv');
   const dp=N('odd'),ncb=parseFloat(SL('ncbd'))||0;
   const ela=N('ELA'),trod=N('TrOD'),emp=N('EMP'),lld=N('lld');
   const nopd=IV('nopd'),nopp=IV('nopp'),llnfpp=IV('llnfpp');
@@ -1050,7 +1072,7 @@ function calc(){
   T('pi-cc',(SL('etype')==='0'?'ICE ':SL('etype')==='1'?'EV ':'Hybrid ')+(N('cc')||'—')+' CC/KW');
   T('pi-age',age.toFixed(2)+' yrs');
   T('pi-zone','Zone '+z);
-  T('pi-idv',policy==='satp'?'—':'₹ '+(N('newidv')||0).toLocaleString('en-IN'));
+  T('pi-idv',policy==='satp'?'—':'₹ '+(N('oldidv')||0).toLocaleString('en-IN'));
   T('pi-ncb',policy==='satp'?'—':SL('ncbd')+'%');
   const gvwVTs=['gcv4','3gcv','bus','sbus','3pcv','taxi'];
   T('pi-gvw', gvwVTs.includes(VT) && gvw ? gvw+' Kg' : '—');
@@ -1114,6 +1136,7 @@ function syncPdf(){
 function doCalc(){
   if(!validate()){showToast('⚠️ Please fix the highlighted errors before calculating.');return;}
   calc();
+  saveQuoteToHistory();
 }
 function doPrint(){
   if(!validate()){
@@ -1224,6 +1247,241 @@ async function doShare(){
     btn.disabled=false;
   }
 }
+
+/* ═══════════════ RESET ALL FIELDS ═══════════════ */
+function resetAllFields(){
+  // Reset vehicle type
+  VT='pc';
+  document.querySelectorAll('.vt').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.vtb .vt').classList.add('on');
+
+  // Reset policy type
+  policy='package';
+  document.querySelectorAll('#policy-type-buttons .vt').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#policy-type-buttons .vt').classList.add('on');
+
+  // Clear text fields
+  G('pname').value='';
+  G('regno').value='';
+  G('remarks').value='';
+
+  // Reset dates
+  const t=new Date().toISOString().split('T')[0];
+  G('rsdate').value=t;
+  G('rdate').value='';
+
+  // Reset zone & engine type
+  G('zone').value='B';
+  G('etype').value='0';
+
+  // Reset numeric fields
+  G('cc').value='';G('gvw').value='';G('nps').value='';
+  G('oldidv').value='';
+  G('odd').value='0';
+  G('ncbd').value='0';
+  G('paodt').value='0';
+  G('lld').value='';
+  G('renewalType').value='uiic';
+
+  // Reset checkboxes
+  ['isFleet','isObsolete','isImported','isRoApproved',
+   'ND','EP','CM','RTI','RSAc','NPc','imt23','OT','LPG','GE','EVP'].forEach(id=>{
+    const el=G(id);if(el)el.checked=false;
+  });
+
+  // Reset selects/dropdowns
+  G('LK').value='0'; G('tyreV').value='0';
+  G('ELA').value='';G('TrOD').value='';G('EMP').value='';
+  G('towAmt').value='';
+  G('nopd').value='';G('nopp').value='';G('llnfpp').value='';
+  G('pdSI').value='100000';G('upaSI').value='100000';
+  if(G('platpa'))G('platpa').value='0';
+
+  // Clear all errors
+  ['rdate','rsdate','oldidv','cc','gvw','nps','odd'].forEach(id=>cErr(id));
+
+  // Reset stars/markers
+  G('gvw-star').style.display='none';
+  G('nps-star').style.display='none';
+  G('cc-star').style.display='';
+  if(G('fg-platpa'))G('fg-platpa').style.display='';
+
+  // Re-enable all fields
+  updateFormFieldsState();
+  // Reset IDV note
+  G('idvn').textContent='ℹ️ Enter the Insured Declared Value (IDV) directly.';
+
+  calc();
+  syncPdf();
+  showToast('🔄 All fields reset to default!');
+}
+
+/* ═══════════════ QUOTE HISTORY ═══════════════ */
+const HIST_KEY='quoteHistory';
+const MAX_HIST=6;
+
+function getQuoteHistory(){
+  try{return JSON.parse(localStorage.getItem(HIST_KEY))||[];}catch(e){return [];}
+}
+function saveQuoteHistory(arr){
+  localStorage.setItem(HIST_KEY,JSON.stringify(arr));
+}
+
+function captureFormState(){
+  return {
+    vt:VT, policy:policy,
+    pname:G('pname').value, regno:G('regno').value,
+    rdate:G('rdate').value, rsdate:G('rsdate').value,
+    zone:SL('zone'), etype:SL('etype'),
+    cc:G('cc').value, gvw:G('gvw').value, nps:G('nps').value,
+    renewalType:SL('renewalType'),
+    isFleet:CK('isFleet'), isObsolete:CK('isObsolete'),
+    isImported:CK('isImported'), isRoApproved:CK('isRoApproved'),
+    oldidv:G('oldidv').value,
+    odd:G('odd').value, ncbd:SL('ncbd'), paodt:SL('paodt'),
+    lld:G('lld').value, remarks:G('remarks').value,
+    ND:CK('ND'), EP:CK('EP'), CM:CK('CM'), RTI:CK('RTI'),
+    LK:SL('LK'), RSAc:CK('RSAc'), NPc:CK('NPc'),
+    imt23:CK('imt23'), OT:CK('OT'), LPG:CK('LPG'), GE:CK('GE'), EVP:CK('EVP'),
+    ELA:G('ELA').value, TrOD:G('TrOD').value, EMP:G('EMP').value,
+    tyreV:SL('tyreV'), towAmt:G('towAmt').value,
+    nopd:G('nopd').value, pdSI:SL('pdSI'), nopp:G('nopp').value, upaSI:SL('upaSI'),
+    llnfpp:G('llnfpp').value, platpa:G('platpa')?SL('platpa'):'0'
+  };
+}
+
+function restoreFormState(s){
+  // Set vehicle type
+  VT=s.vt||'pc';
+  document.querySelectorAll('.vtb .vt').forEach(b=>{
+    b.classList.remove('on');
+    if(b.textContent.trim().length>0){
+      // Match by onclick attribute
+    }
+  });
+  // Click the correct VT button
+  document.querySelectorAll('.vtb .vt').forEach(b=>{
+    const oc=b.getAttribute('onclick')||'';
+    if(oc.includes("'"+VT+"'")) b.classList.add('on');
+  });
+
+  // Set policy type
+  policy=s.policy||'package';
+  document.querySelectorAll('#policy-type-buttons .vt').forEach(b=>{
+    b.classList.remove('on');
+    const oc=b.getAttribute('onclick')||'';
+    if(oc.includes("'"+policy+"'")) b.classList.add('on');
+  });
+
+  // Text fields
+  G('pname').value=s.pname||'';G('regno').value=s.regno||'';
+  G('rdate').value=s.rdate||'';G('rsdate').value=s.rsdate||'';
+  G('zone').value=s.zone||'B';G('etype').value=s.etype||'0';
+  G('cc').value=s.cc||'';G('gvw').value=s.gvw||'';G('nps').value=s.nps||'';
+  G('renewalType').value=s.renewalType||'uiic';
+  G('isFleet').checked=!!s.isFleet;G('isObsolete').checked=!!s.isObsolete;
+  G('isImported').checked=!!s.isImported;G('isRoApproved').checked=!!s.isRoApproved;
+  G('oldidv').value=s.oldidv||'';
+  G('odd').value=s.odd||'0';G('ncbd').value=s.ncbd||'0';G('paodt').value=s.paodt||'0';
+  G('lld').value=s.lld||'';G('remarks').value=s.remarks||'';
+
+  // Checkboxes
+  G('ND').checked=!!s.ND;G('EP').checked=!!s.EP;G('CM').checked=!!s.CM;G('RTI').checked=!!s.RTI;
+  G('RSAc').checked=!!s.RSAc;G('NPc').checked=!!s.NPc;G('imt23').checked=!!s.imt23;
+  G('OT').checked=!!s.OT;G('LPG').checked=!!s.LPG;G('GE').checked=!!s.GE;G('EVP').checked=!!s.EVP;
+
+  // Selects
+  G('LK').value=s.LK||'0';G('tyreV').value=s.tyreV||'0';
+  G('ELA').value=s.ELA||'';G('TrOD').value=s.TrOD||'';G('EMP').value=s.EMP||'';
+  G('towAmt').value=s.towAmt||'';
+  G('nopd').value=s.nopd||'';G('pdSI').value=s.pdSI||'100000';
+  G('nopp').value=s.nopp||'';G('upaSI').value=s.upaSI||'100000';
+  G('llnfpp').value=s.llnfpp||'';
+  if(G('platpa'))G('platpa').value=s.platpa||'0';
+
+  // Show/hide required markers
+  const gvwR=['gcv4'];
+  const npsR=['bus','sbus','3pcv','taxi'];
+  const ccR=['pc','pc3y','tw','tw5y','taxi'];
+  G('gvw-star').style.display=gvwR.includes(VT)?'':'none';
+  G('nps-star').style.display=npsR.includes(VT)?'':'none';
+  G('cc-star').style.display=ccR.includes(VT)?'':'none';
+  const isPc=['pc','pc3y'].includes(VT);
+  if(G('fg-platpa'))G('fg-platpa').style.display=isPc?'':'none';
+
+  // Clear errors
+  ['rdate','rsdate','oldidv','cc','gvw','nps','odd'].forEach(id=>cErr(id));
+
+  updateFormFieldsState();
+  calc();
+  syncPdf();
+}
+
+function saveQuoteToHistory(){
+  const state=captureFormState();
+  const vtN={pc:'Private Car',pc3y:'Pvt Car (3Y)',tw:'Two Wheeler',tw5y:'2W (5Y)',
+    gcv4:'GCV 4W','3gcv':'3W GCV','3pcv':'3W PCV',taxi:'PCV Taxi',bus:'PCV Bus',sbus:'School Bus',misc:'Misc-D'};
+  const total=G('q-total').textContent||'₹ 0';
+  const entry={
+    id:Date.now(),
+    ts:new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true}),
+    name:state.pname||'—',
+    regno:(state.regno||'—').toUpperCase(),
+    vt:vtN[state.vt]||state.vt,
+    policyLabel:state.policy==='package'?'PKG':state.policy==='saod'?'SAOD':'SATP',
+    idv:state.oldidv?'₹'+parseInt(state.oldidv).toLocaleString('en-IN'):'—',
+    total:total,
+    state:state
+  };
+  let hist=getQuoteHistory();
+  hist.unshift(entry);
+  if(hist.length>MAX_HIST) hist=hist.slice(0,MAX_HIST);
+  saveQuoteHistory(hist);
+  renderHistory();
+  showToast('✅ Quote saved to history!');
+}
+
+function renderHistory(){
+  const hist=getQuoteHistory();
+  const el=G('hist-list');
+  if(!hist.length){
+    el.innerHTML='<div style="text-align:center;padding:12px;color:#556688;font-size:12px;">No quotes saved yet. Calculate a premium to save a quote.</div>';
+    return;
+  }
+  let h='';
+  hist.forEach((q,i)=>{
+    h+=`<div class="hist-row">
+      <span class="hist-num">#${i+1}</span>
+      <span class="hist-info"><b>${q.name}</b> · ${q.regno} · ${q.vt} · ${q.policyLabel} · IDV: ${q.idv}</span>
+      <span class="hist-total">${q.total}</span>
+      <span class="hist-ts">${q.ts}</span>
+      <button class="hist-edit" onclick="editQuote(${q.id})" title="Load this quote into the form">✏️ Edit</button>
+      <button class="hist-del" onclick="deleteQuote(${q.id})" title="Remove from history">🗑️</button>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+function editQuote(id){
+  const hist=getQuoteHistory();
+  const q=hist.find(h=>h.id===id);
+  if(!q||!q.state){showToast('❌ Quote data not found.');return;}
+  restoreFormState(q.state);
+  showToast('✏️ Quote loaded! Modify and recalculate.');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function deleteQuote(id){
+  let hist=getQuoteHistory();
+  hist=hist.filter(h=>h.id!==id);
+  saveQuoteHistory(hist);
+  renderHistory();
+  showToast('🗑️ Quote removed from history.');
+}
+
+// Render history on page load
+document.addEventListener('DOMContentLoaded',()=>{ renderHistory(); });
+
 </script>
 </body>
 </html>

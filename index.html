@@ -367,6 +367,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
           <option value="45">45% — 4 yrs</option>
           <option value="50">50% — 5 yrs</option>
         </select>
+        <span class="em" id="e-ncbd"></span>
       </div>
       <div class="fg" id="fg-paodt"><label>PA Owner-Driver</label>
         <select id="paodt" onchange="calc()">
@@ -403,8 +404,9 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
         <div class="cbg"><input type="checkbox" id="OT" onchange="calc()"><label for="OT">Overturning (0.5% IDV)</label></div>
         <div class="cbg"><input type="checkbox" id="AT" onchange="calc()"><label for="AT">Anti Theft (2.5% disc, max ₹500)</label></div>
       </div>
-      <div class="fr c3">
+      <div class="fr c4">
         <div class="fg"><label>Elec. Acc. IDV (₹)</label><input type="number" id="ELA" placeholder="OD @ 4%" onchange="calc()"></div>
+        <div class="fg"><label>Non-Elec. Acc. IDV</label><input type="number" id="NELA" placeholder="OD @ Basic Rate" onchange="calc()"></div>
         <div class="fg"><label>Trailer IDV (₹)</label><input type="number" id="TrOD" placeholder="OD @ 1.05%" onchange="calc()"></div>
         <div class="fg"><label>EMI Protect Amt (₹)</label><input type="number" id="EMP" placeholder="0" onchange="calc()"></div>
       </div>
@@ -604,7 +606,7 @@ function swPolicy(p,btn){
 }
 
 function updateFormFieldsState(){
-  const odFields=['oldidv','odd','ncbd','ND','EP','CM','RTI','LK','RSAc','NPc','imt23','OT','EVP','ELA','TrOD','EMP','tyreV','towAmt','AT'];
+  const odFields=['oldidv','odd','ncbd','ND','EP','CM','RTI','LK','RSAc','NPc','imt23','OT','EVP','ELA','NELA','TrOD','EMP','tyreV','towAmt','AT'];
   const tpFields=['paodt','lld','nopd','pdSI','upaSI','nopp','llnfpp','platpa'];
   if(policy==='package'){
     odFields.forEach(id=>{const el=G(id);if(el)el.removeAttribute('disabled');});
@@ -814,7 +816,9 @@ function onDC(){
 
 /* ─── VALIDATION ─── */
 function validate(){
+  window.customToast = null;
   let ok=true;
+  cErr('ncbd');
   const rd=G('rdate').value,rs=G('rsdate').value;
   if(!rd){sErr('rdate','Registration date is required.');ok=false;}else cErr('rdate');
   if(!rs){sErr('rsdate','Risk start date is required.');ok=false;}
@@ -848,6 +852,24 @@ function validate(){
     cErr('oldidv');
     cErr('odd');
   }
+
+  if(CK('ND') && policy !== 'satp'){
+    const age=getAge();
+    const ncb=parseFloat(SL('ncbd'))||0;
+    const isPc=['pc','pc3y','tw','tw5y'].includes(VT);
+    if(isPc && age > 5){
+      if((ren==='uiic' && ncb < 25) || (ren==='other' && ncb < 35) || (ren==='new')){
+        sErr('ncbd','Check NCB since Nil Dep extension opted.');ok=false;
+        window.customToast = 'Check NCB since Nil Dep extension opted.';
+      }
+    } else if(!isPc && age > 3){
+      if((ren==='uiic' && ncb < 20) || (ren==='other' && ncb < 25) || (ren==='new')){
+        sErr('ncbd','Check NCB since Nil Dep extension opted.');ok=false;
+        window.customToast = 'Check NCB since Nil Dep extension opted.';
+      }
+    }
+  }
+
   const ccV=['pc','pc3y','tw','tw5y','taxi'];
   if(ccV.includes(VT)&&!N('cc')){sErr('cc','CC / KW is required for this vehicle type.');ok=false;}else cErr('cc');
   if(VT==='gcv4'&&!N('gvw')){sErr('gvw','GVW is required for GCV 4W.');ok=false;}else cErr('gvw');
@@ -903,13 +925,13 @@ function nilDep(vt,age,base){
   if(pc){
     if(age<=1)return{p:10,a:base*.10};
     if(age<=2)return{p:20,a:base*.20};
-    if(age<=5)return{p:30,a:base*.30};
-    return null;
+    if(age<=7)return{p:30,a:base*.30};
+    return {p:40,a:base*.40};
   }
   if(age<=1)return{p:10,a:base*.10};
   if(age<=2)return{p:20,a:base*.20};
-  if(age<=3)return{p:30,a:base*.30};
-  return null;
+  if(age<=5)return{p:30,a:base*.30};
+  return {p:40,a:base*.40};
 }
 function epA(vt,age,idv){
   if(['pc','pc3y'].includes(vt)){const t=[.0013,.0016,.0021,.0027,.0032];const i=age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:age<4.5?4:-1;return i<0?0:idv*t[i];}
@@ -918,9 +940,7 @@ function epA(vt,age,idv){
   return 0;
 }
 function cmA(vt,age,idv){
-  if(vt==='pc3y') return idv * 0.0027;
-  if(vt==='tw5y') return idv * 0.0045;
-  const t=['pc','tw'].includes(vt) ? [.0010,.0012,.0015,.0017,.0020] : [.0015,.0018,.0022,.0025,.0030];
+  const t=['pc','pc3y','tw','tw5y'].includes(vt) ? [.0010,.0012,.0015,.0017,.0020] : [.0015,.0018,.0022,.0025,.0030];
   const i=age<=1?0:age<=2?1:age<=3?2:age<=4?3:age<=5?4:-1;
   return i<0 ? 0 : idv*t[i];
 }
@@ -973,7 +993,7 @@ function calc(){
   const age=getAge(),isnew=isNew(),z=SL('zone'),et=parseInt(SL('etype'))||0;
   const cc=N('cc'),gvw=N('gvw'),nps=IV('nps'),idv=N('oldidv');
   const dp=N('odd'),ncb=parseFloat(SL('ncbd'))||0;
-  const ela=N('ELA'),trod=N('TrOD'),emp=N('EMP'),lld=N('lld');
+  const ela=N('ELA'),nela=N('NELA'),trod=N('TrOD'),emp=N('EMP'),lld=N('lld');
   const nopd=IV('nopd'),nopp=IV('nopp'),llnfpp=IV('llnfpp');
   const tow=N('towAmt'),tyre=parseFloat(SL('tyreV'))||0,paodv=SL('paodt');
   const ND=CK('ND'),EP=CK('EP'),CM=CK('CM'),RTI=CK('RTI');
@@ -994,15 +1014,15 @@ function calc(){
 
   if(policy!=='satp'){
     const bod=idv>0?basicODp(odr,idv,VT,gvw,nps):0;
-    const elaod=ela*.04,trod_=trod*.0105;
+    const elaod=ela*.04,nelaod=nela*(odr/100),trod_=trod*.0105;
 
-    // Nil dep on (bod+elaod+trod_) BEFORE discount
+    // Nil dep on (bod+elaod+nelaod+trod_) BEFORE discount
     let nd=0,ndp=0;
-    if(ND&&idv>0){const r=nilDep(VT,age,bod+elaod+trod_);if(r){nd=r.a;ndp=r.p;}else G('ND').checked=false;}
+    if(ND&&idv>0){const r=nilDep(VT,age,bod+elaod+nelaod+trod_);if(r){nd=r.a;ndp=r.p;}else G('ND').checked=false;}
 
     // Detariff discount on same base
-    const disc=(bod+elaod+trod_)*dp/100;
-    const adis=bod+elaod+trod_-disc;
+    const disc=(bod+elaod+nelaod+trod_)*dp/100;
+    const adis=bod+elaod+nelaod+trod_-disc;
 
     // IMT-23 on post-discount base
     const i23=I23?adis*.15:0;
@@ -1019,17 +1039,18 @@ function calc(){
     const evp=EVP?evpA(et,age,idv):0;
     const at_disc=AT?Math.min(500, bod*0.025):0;
 
-    // NCB base: basicOD−disc + nilDep + imt23 + RTI + lpgOD + OT + ELA_ad + TrOD_ad
-    const elaad=elaod*(1-dp/100),trad=trod_*(1-dp/100);
-    const ncbBase=bod-disc+nd+i23+rti+lpgod+ot_+elaad+trad;
+    // NCB base: basicOD−disc + nilDep + imt23 + RTI + lpgOD + OT + ELA_ad + NELA_ad + TrOD_ad
+    const elaad=elaod*(1-dp/100),nelaad=nelaod*(1-dp/100),trad=trod_*(1-dp/100);
+    const ncbBase=bod-disc+nd+i23+rti+lpgod+ot_+elaad+nelaad+trad;
     const ncbAmt=ncbBase*ncb/100;
 
-    const tod=bod+elaod+trod_+nd-disc+i23-ncbAmt+ep+cm+rti+lk+rsa+np_+em+tw_+tyre+gd_+lpgod+ot_+evp-at_disc;
+    const tod=bod+elaod+nelaod+trod_+nd-disc+i23-ncbAmt+ep+cm+rti+lk+rsa+np_+em+tw_+tyre+gd_+lpgod+ot_+evp-at_disc;
     todR=Math.max(0,Math.round(tod));
     god=todR*.18;
 
     OD.push([`Basic OD (${odr.toFixed(3)}%)`,rpd(bod),'ac',false]);
     if(elaod>0)  OD.push(['Elec. Acc. OD (4%)',rpd(elaod),'',false]);
+    if(nelaod>0) OD.push([`Non Electrical Accessory (${odr.toFixed(3)}%)`,rpd(nelaod),'',false]);
     if(trod_>0)  OD.push(['Trailer OD (1.05%)',rpd(trod_),'',false]);
     if(nd>0)     OD.push([`Nil Depreciation (${ndp}%)`,rpd(nd),'',false]);
     if(disc>0)   OD.push([`Discount (${dp}%)`,'-'+rpd(disc),'ng',false]);
@@ -1143,8 +1164,9 @@ function renderTable(tbid,tfid,OD,TP,tod,god,ttp,gttp,isgcv,isPdf){
   }
   G(tbid).innerHTML=h;
 
-  // Footer: Total row + GST row
+  // Footer: Total row + GST row + Consolidated rows
   const todR=rp(tod),godR=rpd(god),ttpR=rp(ttp),gttpR=rpd(gttp);
+  const totPremR=rp(tod+ttp), totGstR=rpd(god+gttp);
   G(tfid).innerHTML=`
     <tr class="tr1">
       <td class="lb"><strong>Total Own Damage</strong></td>
@@ -1159,6 +1181,16 @@ function renderTable(tbid,tfid,OD,TP,tod,god,ttp,gttp,isgcv,isPdf){
       <td class="sp"></td>
       <td class="lb">GST Liability ${isgcv?'(5%+18%)':'(18%)'}</td>
       <td class="vl">${gttpR}</td>
+    </tr>
+    <tr style="${isPdf ? 'background:#eff6ff; border-top:2px solid #1a4a8a; font-size:14px; font-weight:800; color:#0f172a;' : 'background:rgba(245,166,35,.15); font-size:13px; font-weight:800; border-top:1px solid rgba(245,166,35,.4); color:#fff;'}">
+      <td class="lb" colspan="2" style="text-align:right; padding:10px;"><strong>Nett Premium</strong></td>
+      <td class="sp"></td>
+      <td class="vl" colspan="2" style="text-align:left; padding:10px;"><strong>₹ ${totPremR}</strong></td>
+    </tr>
+    <tr style="${isPdf ? 'background:#f8fafc; font-size:12px; color:#334155;' : 'font-size:11px; color:#cbd5e1; background:rgba(0,0,0,.25);'}">
+      <td class="lb" colspan="2" style="text-align:right; padding:8px 10px;">Total GST</td>
+      <td class="sp"></td>
+      <td class="vl" colspan="2" style="text-align:left; padding:8px 10px;">₹ ${totGstR}</td>
     </tr>`;
 }
 
@@ -1169,13 +1201,13 @@ function syncPdf(){
 }
 
 function doCalc(){
-  if(!validate()){showToast('⚠️ Please fix the highlighted errors before calculating.');return;}
+  if(!validate()){showToast(window.customToast ? '⚠️ ' + window.customToast : '⚠️ Please fix the highlighted errors before calculating.');return;}
   calc();
   saveQuoteToHistory();
 }
 function doPrint(){
   if(!validate()){
-    showToast('⚠️ Please fix the highlighted errors before exporting.');
+    showToast(window.customToast ? '⚠️ ' + window.customToast : '⚠️ Please fix the highlighted errors before exporting.');
     return;
   }
   calc();
@@ -1255,7 +1287,7 @@ async function generatePdfBlob(){
 }
 
 async function doShare(){
-  if(!validate()){showToast('⚠️ Please fix the highlighted errors before sharing.');return;}
+  if(!validate()){showToast(window.customToast ? '⚠️ ' + window.customToast : '⚠️ Please fix the highlighted errors before sharing.');return;}
   const btn=G('btn-share');
   btn.textContent='⏳ Generating...';
   btn.disabled=true;
@@ -1326,7 +1358,7 @@ function resetAllFields(){
 
   // Reset selects/dropdowns
   G('LK').value='0'; G('tyreV').value='0';
-  G('ELA').value='';G('TrOD').value='';G('EMP').value='';
+  G('ELA').value='';G('NELA').value='';G('TrOD').value='';G('EMP').value='';
   G('towAmt').value='';
   G('nopd').value='';G('nopp').value='';G('llnfpp').value='';
   G('pdSI').value='100000';G('upaSI').value='100000';
@@ -1378,7 +1410,7 @@ function captureFormState(){
     ND:CK('ND'), EP:CK('EP'), CM:CK('CM'), RTI:CK('RTI'),
     LK:SL('LK'), RSAc:CK('RSAc'), NPc:CK('NPc'),
     imt23:CK('imt23'), OT:CK('OT'), LPG:CK('LPG'), GE:CK('GE'), EVP:CK('EVP'), AT:CK('AT'),
-    ELA:G('ELA').value, TrOD:G('TrOD').value, EMP:G('EMP').value,
+    ELA:G('ELA').value, NELA:G('NELA').value, TrOD:G('TrOD').value, EMP:G('EMP').value,
     tyreV:SL('tyreV'), towAmt:G('towAmt').value,
     nopd:G('nopd').value, pdSI:SL('pdSI'), nopp:G('nopp').value, upaSI:SL('upaSI'),
     llnfpp:G('llnfpp').value, platpa:G('platpa')?SL('platpa'):'0'
@@ -1427,7 +1459,7 @@ function restoreFormState(s){
 
   // Selects
   G('LK').value=s.LK||'0';G('tyreV').value=s.tyreV||'0';
-  G('ELA').value=s.ELA||'';G('TrOD').value=s.TrOD||'';G('EMP').value=s.EMP||'';
+  G('ELA').value=s.ELA||'';G('NELA').value=s.NELA||'';G('TrOD').value=s.TrOD||'';G('EMP').value=s.EMP||'';
   G('towAmt').value=s.towAmt||'';
   G('nopd').value=s.nopd||'';G('pdSI').value=s.pdSI||'100000';
   G('nopp').value=s.nopp||'';G('upaSI').value=s.upaSI||'100000';

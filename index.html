@@ -153,7 +153,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
 
   /* ── PDF Header (Deep Blue Accent) ── */
   #pdf-head{background:#1a4a8a!important;color:#fff!important;padding:12px 0!important;
-    border-radius:6px 6px 0 0!important; margin-bottom:20px!important; text-align:center;}
+    border-radius:6px 6px 0 0!important; border-bottom: 3px solid #f59e0b!important; margin-bottom:20px!important; text-align:center;}
   #pdf-head h2{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#fff!important;
     letter-spacing:1px;margin:0;text-transform:uppercase;}
 
@@ -167,7 +167,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
   #pdf-qt{width:100%!important;border-collapse:collapse!important;font-size:13px!important;
     font-family:'Nunito',sans-serif!important;margin-bottom:0!important;}
   #pdf-qt thead th{font-weight:700;text-align:center;padding:10px!important;
-    border:1px solid #94a3b8!important; color:#1a4a8a!important; background:#e2e8f0!important; font-size:15px!important;}
+    border:1px solid #94a3b8!important; border-top: 2px solid #f59e0b!important; color:#1a4a8a!important; background:#e2e8f0!important; font-size:15px!important;}
   #pdf-qt td{padding:8px 10px!important;border:1px solid #cbd5e1!important;
     color:#334155!important;font-size:13px!important;}
   #pdf-qt td.lb{color:#0f172a!important;}
@@ -179,7 +179,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
     background:#fff!important; padding:8px 10px!important;}
 
   /* ── Grand Total bar ── */
-  #pdf-grand{background:#eff6ff!important;border:2px solid #1a4a8a!important; border-top:none!important;
+  #pdf-grand{background:#eff6ff!important;border:2px solid #1a4a8a!important; border-top:none!important; border-bottom: 4px solid #f59e0b!important;
     text-align:center!important;padding:16px!important;font-family:'Rajdhani',sans-serif!important;
     font-size:22px!important;font-weight:700!important;color:#1a4a8a!important;
     border-radius:0 0 6px 6px!important;letter-spacing:.5px!important; margin-bottom:20px!important;}
@@ -197,7 +197,10 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
 <div id="toast"></div>
 <div id="pdf-page" style="display:none">
   <div id="pdf-head">
-    <h2>UNITED INDIA INSURANCE COMPANY LIMITED QUOTATION</h2>
+    <h2>
+      <img src="united india.png" alt="UIIC Logo" style="height:36px; vertical-align:middle; margin-right:12px; border-radius:50%; border:2px solid #fff; background:#fff; padding:1px;" onerror="this.style.display='none'">
+      <span style="vertical-align:middle;">UNITED INDIA INSURANCE COMPANY LIMITED QUOTATION</span>
+    </h2>
   </div>
   <div id="pdf-info">
     <div class="pi"><strong>Proposer:</strong><span id="pi-name">—</span></div>
@@ -218,9 +221,9 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
   <table id="pdf-qt">
     <thead>
       <tr>
-        <th class="hod" colspan="2">Own Damage</th>
-        <td class="sp" rowspan="99" style="width:2px"></td>
-        <th class="htp" colspan="2">Liability</th>
+        <th class="hod" colspan="2" style="width:49.5%">Own Damage</th>
+        <td class="sp" rowspan="99" style="width:1%"></td>
+        <th class="htp" colspan="2" style="width:49.5%">Liability</th>
       </tr>
     </thead>
     <tbody id="pdf-qt-body"></tbody>
@@ -529,9 +532,9 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
       <table class="qt">
         <thead>
           <tr>
-            <th class="hod" colspan="2">Own Damage</th>
-            <td class="sp" rowspan="99"></td>
-            <th class="htp" colspan="2">Liability</th>
+            <th class="hod" colspan="2" style="width:49.5%">Own Damage</th>
+            <td class="sp" rowspan="99" style="width:1%"></td>
+            <th class="htp" colspan="2" style="width:49.5%">Liability</th>
           </tr>
         </thead>
         <tbody id="s-tbody"></tbody>
@@ -925,13 +928,15 @@ function nilDep(vt,age,base){
   if(pc){
     if(age<=1)return{p:10,a:base*.10};
     if(age<=2)return{p:20,a:base*.20};
-    if(age<=7)return{p:30,a:base*.30};
-    return {p:40,a:base*.40};
+    if(age<=3)return{p:30,a:base*.30};
+    if(age<=7)return{p:40,a:base*.40};
+    return null;
   }
   if(age<=1)return{p:10,a:base*.10};
   if(age<=2)return{p:20,a:base*.20};
-  if(age<=5)return{p:30,a:base*.30};
-  return {p:40,a:base*.40};
+  if(age<=3)return{p:30,a:base*.30};
+  if(age<=5)return{p:40,a:base*.40};
+  return null;
 }
 function epA(vt,age,idv){
   if(['pc','pc3y'].includes(vt)){const t=[.0013,.0016,.0021,.0027,.0032];const i=age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:age<4.5?4:-1;return i<0?0:idv*t[i];}
@@ -1223,19 +1228,19 @@ async function generatePdfBlob(){
     @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap');
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:#fff;color:#0f172a;font-family:'Nunito',sans-serif;padding:10mm;}
-    #pdf-head{background:#1a4a8a;color:#fff;padding:12px 0;border-radius:6px 6px 0 0;margin-bottom:20px;text-align:center;}
+    #pdf-head{background:#1a4a8a;color:#fff;padding:12px 0;border-radius:6px 6px 0 0; border-bottom:3px solid #f59e0b; margin-bottom:20px;text-align:center;}
     #pdf-head h2{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:1px;margin:0;text-transform:uppercase;}
     #pdf-info{display:grid;grid-template-columns:1fr 1fr;gap:12px 30px;background:#f8fafc;border:1px solid #cbd5e1;border-left:4px solid #1a4a8a;padding:18px;font-size:13px;color:#1e293b;margin-bottom:25px;border-radius:0 6px 6px 0;}
     #pdf-info .pi strong{display:inline-block;width:150px;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;}
     #pdf-qt{width:100%;border-collapse:collapse;font-size:13px;font-family:'Nunito',sans-serif;margin-bottom:0;}
-    #pdf-qt thead th{font-weight:700;text-align:center;padding:10px;border:1px solid #94a3b8;color:#1a4a8a;background:#e2e8f0;font-size:15px;}
+    #pdf-qt thead th{font-weight:700;text-align:center;padding:10px;border:1px solid #94a3b8;border-top:2px solid #f59e0b;color:#1a4a8a;background:#e2e8f0;font-size:15px;}
     #pdf-qt td{padding:8px 10px;border:1px solid #cbd5e1;color:#334155;font-size:13px;}
     #pdf-qt td.lb{color:#0f172a;}
     #pdf-qt td.vl{text-align:right;font-weight:600;color:#0f172a;white-space:nowrap;}
     #pdf-qt td.sp{width:1px;background:#cbd5e1;padding:0;border:none;}
     #pdf-qt tfoot tr.tr1 td{font-weight:800;background:#f1f5f9;border-top:2px solid #1a4a8a;font-size:15px;color:#0f172a;padding:12px;}
     #pdf-qt tfoot tr.tr2 td{font-size:11px;color:#64748b;background:#fff;padding:8px 10px;}
-    #pdf-grand{background:#eff6ff;border:2px solid #1a4a8a;border-top:none;text-align:center;padding:16px;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#1a4a8a;border-radius:0 0 6px 6px;letter-spacing:.5px;margin-bottom:20px;}
+    #pdf-grand{background:#eff6ff;border:2px solid #1a4a8a;border-top:none;border-bottom:4px solid #f59e0b;text-align:center;padding:16px;font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:#1a4a8a;border-radius:0 0 6px 6px;letter-spacing:.5px;margin-bottom:20px;}
     #pdf-disc{font-size:12px;color:#64748b;text-align:center;padding:15px 0;border-top:1px solid #cbd5e1;margin-top:15px;line-height:1.6;}
   `;
 

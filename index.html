@@ -244,7 +244,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="brst" onclick="resetAllFields()" title="Reset all fields to default">🔄 Reset</button>
-      <div class="hb">💻 Developed by Pandian R(UIIIC)</div>
+      <div class="hb">💻 Developed by Pandian R(UIIC)</div>
     </div>
   </div>
 </header>
@@ -340,10 +340,10 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
       <div class="fg" style="grid-column: span 3;">
         <label>Policy Attributes</label>
         <div style="display:flex;gap:15px;font-size:12px;margin-top:7px;flex-wrap:wrap">
-          <label><input type="checkbox" id="isFleet" onchange="calc()"> Fleet (10+)</label>
+          <label><input type="checkbox" id="isFleet" onchange="calc()" disabled title="Fleet discount removed wef 10-Jul-2026"> <span style="opacity:0.4;text-decoration:line-through">Fleet (10+)</span> <span style="font-size:9px;color:#e84040">[removed]</span></label>
           <label><input type="checkbox" id="isObsolete" onchange="calc()"> Obsolete Model</label>
           <label><input type="checkbox" id="isImported" onchange="calc()"> Imported Vehicle</label>
-          <label><input type="checkbox" id="isRoApproved" onchange="calc()"> RO Approved</label>
+          <label><input type="checkbox" id="isRoApproved" onchange="calc()"> HO Referral (via RO)</label>
         </div>
       </div>
     </div>
@@ -511,14 +511,14 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
   <div class="card" style="border-color:rgba(217,119,6,.3);">
     <div class="st" style="color:#d97706;margin-bottom:5px;">⚙️ Circular Limits Editor (CSV)</div>
     <div style="font-size:10px;color:#8899cc;margin-bottom:8px;line-height:1.4;">
-      Paste your quarterly circular rules here as CSV.<br>
-      Format: <code>VehicleTypes, PolicyTypes, RenewalTypes, NCBMin, NCBMax, GVWMin, GVWMax, OfficeLimit, ROLimit</code><br>
-      Use <code>*</code> for any, or <code>|</code> to separate multiples (e.g. <code>tw|tw5y</code>).
+      Paste circular rules here as CSV.<br>
+      Format: <code>VehicleTypes, PolicyTypes, RenewalTypes, NCBMin, NCBMax, GVWMin, GVWMax, AgeMin, AgeMax, OfficeLimit, ROLimit</code><br>
+      Use <code>*</code> for any, or <code>|</code> to separate multiples (e.g. <code>tw|tw5y</code>). Note: wef 10-Jul-2026 ROLimit = OfficeLimit (no separate RO limits).
     </div>
     <textarea id="csv-rules" style="width:100%;height:100px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.1);border-radius:5px;color:#ccd4ee;font-family:monospace;font-size:10px;padding:8px;white-space:pre;"></textarea>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button type="button" onclick="loadCircularRules(G('csv-rules').value, true)" style="background:#d97706;border:none;color:#fff;padding:5px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;">💾 Save & Apply Rules</button>
-      <button type="button" onclick="resetCircularRules()" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#8899cc;padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;">🔄 Reset to Default (April 2026)</button>
+      <button type="button" onclick="resetCircularRules()" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#8899cc;padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;">🔄 Reset to Default (Jul 2026)</button>
     </div>
   </div>
 
@@ -579,7 +579,7 @@ let policy='package';
 let circularRules=[];
 
 /* ─── Init ─── */
-const CIRCULAR_VERSION = 'v2'; // Bump this to force-reset cached rules
+const CIRCULAR_VERSION = 'v3'; // Bumped for Jul 2026 circular (wef 10-Jul-2026)
 document.addEventListener('DOMContentLoaded',()=>{
   const t=new Date().toISOString().split('T')[0];
   G('rsdate').value=t;
@@ -692,26 +692,23 @@ function sErr(id,m){const e=G('e-'+id);if(e){e.textContent=m;e.classList.remove(
 function sWarn(id,m){const e=G('e-'+id);if(e){e.textContent=m;e.classList.remove('on');e.classList.add('warn','on');}const f=G(id);if(f){f.classList.remove('erx');f.classList.add('warnx');}}
 function cErr(id){const e=G('e-'+id);if(e){e.classList.remove('on','warn');e.textContent='';}const f=G(id);if(f){f.classList.remove('erx','warnx');}}
 
-/* ─── Circular Rules ─── */
+/* ─── Circular Rules (wef 10-Jul-2026) ─── */
+// NOTE: New circular has NO separate RO limit. ROLimit = OfficeLimit (same value).
+// All proposals above OO/Portal limit must be referred to HO through RO.
+// Fleet discount concept has been removed.
 const defaultCsv = `VehicleTypes,PolicyTypes,RenewalTypes,NCBMin,NCBMax,GVWMin,GVWMax,AgeMin,AgeMax,OfficeLimit,ROLimit
-tw5y,*,*,0,100,0,999999,0,99,80,85
-tw,package,*,0,100,0,999999,0,99,80,85
-tw,saod,*,0,100,0,999999,0,99,70,80
-pc3y,*,*,0,100,0,999999,0,99,80,90
-pc,package,*,0,100,0,999999,0,8,80,90
-pc,package,*,0,100,0,999999,8.01,99,70,80
-pc,saod,uiic|new,0,100,0,999999,0,99,80,90
-pc,saod,other,0,100,0,999999,0,99,70,80
-sbus,*,*,0,100,0,999999,0,99,90,92
-3pcv,*,*,0,100,0,999999,0,99,85,90
-gcv4|3gcv,*,*,0,100,40001,999999,0,99,40,40
-gcv4|3gcv,*,*,0,100,34001,40000,0,99,70,80
-gcv4|3gcv|taxi|bus,*,new,0,100,0,34000,0,99,80,90
-gcv4|3gcv|taxi|bus,*,uiic,0,100,0,34000,0,8,80,90
-gcv4|3gcv|taxi|bus,*,uiic,0,100,0,34000,8.01,99,80,85
-gcv4|3gcv|taxi|bus,*,other,0,100,0,34000,0,99,80,85
-misc,*,new|uiic,0,100,0,999999,0,10,80,90
-misc,*,*,0,100,0,999999,0,99,75,80`;
+tw|tw5y,*,*,0,100,0,999999,0,99,60,60
+pc3y,*,*,0,100,0,999999,0,99,70,70
+pc,*,*,0,100,0,999999,0,10,90,90
+pc,*,*,0,100,0,999999,10.01,99,80,80
+gcv4|3gcv,*,*,0,100,0,40000,0,8,90,90
+gcv4|3gcv,*,*,0,100,0,40000,8.01,99,85,85
+gcv4|3gcv,*,*,0,100,40001,999999,0,99,60,60
+taxi|3pcv,*,*,0,100,0,999999,0,99,85,85
+bus,*,*,0,100,0,999999,0,99,40,40
+sbus,*,*,0,100,0,999999,0,99,95,95
+misc,*,*,0,100,0,999999,0,10,90,90
+misc,*,*,0,100,0,999999,10.01,99,80,80`;
 
 function loadCircularRules(csvStr, save=false){
   if(save){localStorage.setItem('circularCsv', csvStr); showToast('✅ Circular rules saved & applied successfully!');}
@@ -736,10 +733,13 @@ function resetCircularRules(){
   localStorage.removeItem('circularCsv');
   localStorage.setItem('circularVersion', CIRCULAR_VERSION);
   loadCircularRules(defaultCsv);
-  showToast('🔄 Reset to default April 2026 rules!');
+  showToast('🔄 Reset to default Jul 2026 rules!');
 }
 
-function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported) {
+function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et) {
+  // wef 10-Jul-2026: Single OO/Portal limit. No separate RO limit.
+  // All proposals above OO limit to be referred to HO through RO.
+  const etNum = parseInt(et) || 0;
   let off = 0, ro = 0;
   for(let r of circularRules){
     if(r.vt!=='*' && !r.vt.split('|').includes(vt)) continue;
@@ -750,20 +750,36 @@ function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete,
     if(age < r.aMin || age > r.aMax) continue;
     off = r.off; ro = r.ro; break;
   }
-  if(off===0 && ro===0) { off=70; ro=80; } // Fallback
+  if(off===0 && ro===0) { off=60; ro=60; } // Fallback
+
+  // Circular Row 9: PCV Bus above 30 pax — Electric → 85% (Row 10: Non-Electric → 40%)
+  // The CSV default is 40 for bus; override to 85 when engine is Electric.
+  if(vt === 'bus' && etNum === 1) { off = 85; ro = 85; }
 
   const isHeavyGcv = ['gcv4','3gcv'].includes(vt) && gvw > 40000;
+
+  // Note 7: Nil NCB → reduce DTD by 10% (not applicable for GCVs with GVW > 40000 kg)
   if(!isHeavyGcv) {
     const isBrandNewOrBundled = (ren === 'new' || vt === 'pc3y' || vt === 'tw5y');
     if(ncb === 0 && !isBrandNewOrBundled) { off -= 10; ro -= 10; }
-    if(idv > 10000000) { off -= 10; ro -= 10; }
   }
-  if(isFleet && !['tw','tw5y'].includes(vt)) { off += 5; ro += 5; }
+
+  // Note 6: IDV > Rs 1 Crore → reduce DTD by 10% (not applicable for GCVs with GVW > 40000 kg)
+  if(!isHeavyGcv && idv > 10000000) { off -= 10; ro -= 10; }
+
+  // Note 8: Obsolete vehicles → max DTD 30% (own renewals only)
   if(isObsolete && ren==='uiic') { off = Math.min(off, 30); ro = Math.min(ro, 30); }
-  
+
+  // Note 5: IDV > Rs 2 Crore → HO referral (limit = 0)
+  // Note 4: Imported vehicles → HO referral (limit = 0)
+  // Note 3: Two Wheeler IDV > Rs 50 lakhs → HO referral
   if(idv > 20000000 || isImported || (['tw','tw5y'].includes(vt) && idv > 5000000)) {
     off = 0; ro = 0;
   }
+
+  // Note 10: Fleet discount concept has been removed (no fleet bonus)
+  // (isFleet parameter retained for backward compatibility but not applied)
+
   return { off: Math.max(0, off), ro: Math.max(0, ro) };
 }
 
@@ -833,20 +849,22 @@ function validate(){
   if(policy!=='satp'){
     if(!N('oldidv')){sErr('oldidv','IDV / Ex-Showroom price is required.');ok=false;}else cErr('oldidv');
     
-    // Check Discount Limits
+    // Check Discount Limits (wef 10-Jul-2026: No separate RO limit)
     const odd = N('odd');
-    const isRoApproved = CK('isRoApproved');
-    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported);
+    const isHoReferral = CK('isRoApproved'); // Renamed in UI: HO Referral (via RO)
+    const etVal = parseInt(SL('etype')) || 0;
+    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported, etVal);
     
-    const maxLimit = isRoApproved ? limits.ro : limits.off;
+    const maxLimit = limits.off; // Single limit — RO limit = OO limit per new circular
     
-    if(limits.ro === 0) {
-      sErr('odd', '❌ HO Referral Required (Limit 0%)'); ok=false;
+    if(limits.off === 0) {
+      sErr('odd', '❌ HO Referral Required (Limit 0% — IDV/Import restriction)');
+      if(!isHoReferral) ok=false;
     } else if(odd > maxLimit) {
-      if(isRoApproved) {
-        sErr('odd', `❌ Exceeds RO Limit of ${limits.ro}%`); ok=false;
+      if(isHoReferral) {
+        sWarn('odd', `⚠️ Exceeds OO Limit of ${limits.off}% — Refer to HO through RO`);
       } else {
-        sErr('odd', `❌ Exceeds Office Limit of ${limits.off}% (Tick 'RO Approved' to unlock)`); ok=false;
+        sErr('odd', `❌ Exceeds OO/Portal Limit of ${limits.off}% (Tick 'HO Referral' if referred to HO)`); ok=false;
       }
     } else {
       cErr('odd');
@@ -963,18 +981,61 @@ function empA(vt,e){if(!e)return 0;if(['tw','tw5y'].includes(vt))return e*.02;if
 function rsaA(vt){if(['tw','tw5y'].includes(vt))return 25;if(['pc','pc3y'].includes(vt))return 50;if(vt==='taxi')return 75;if(vt==='gcv4')return 200;return 50;}
 function bTP(vt,cc,gvw,nps,et,isnew){
   const E=parseInt(et)||0,ev=v=>Math.round(v*.85),hy=v=>Math.round(v*.925),ap=v=>E===1?ev(v):E===2?hy(v):v;
-  if(vt==='pc')return ap(cc<=1000?2094:cc<=1500?3416:7897);
-  if(vt==='pc3y')return ap(cc<=1000?6521:cc<=1500?10640:24596);
-  if(vt==='tw'){if(E===1)return ev(cc<=3?538:cc<=7?714:cc<=16?1366:2804);return cc<=75?538:cc<=150?714:cc<=350?1366:2804;}
-  if(vt==='tw5y'){if(E===1)return ev(cc<=3?2901:cc<=7?3851:cc<=16?7365:15117);return cc<=75?2901:cc<=150?3851:cc<=350?7365:15117;}
-  if(vt==='gcv4'){const g=gvw||0;return g<=7500?16049:g<=12000?27186:g<=20000?35313:g<=40000?43950:44242;}
-  if(vt==='3gcv')return E===0?4492:3139;
-  if(vt==='3pcv')return E===0?2371:1539;
-  if(vt==='taxi')return cc<=1000?6040:cc<=1500?7940:10523;
-  if(vt==='bus')return 14343;if(vt==='sbus')return 12192;if(vt==='misc')return 7267;
+  if(vt==='pc'){
+    if(E===1) return cc<=30?1780:cc<=65?2904:6712;
+    return ap(cc<=1000?2094:cc<=1500?3416:7897);
+  }
+  if(vt==='pc3y'){
+    if(E===1) return cc<=30?5543:cc<=65?9044:20907;
+    return ap(cc<=1000?6521:cc<=1500?10640:24596);
+  }
+  if(vt==='tw'){
+    if(E===1) return cc<=3?457:cc<=7?607:cc<=16?1161:2383;
+    return ap(cc<=75?538:cc<=150?714:cc<=350?1366:2804);
+  }
+  if(vt==='tw5y'){
+    if(E===1) return cc<=3?2466:cc<=7?3273:cc<=16?6260:12849;
+    return ap(cc<=75?2901:cc<=150?3851:cc<=350?7365:15117);
+  }
+  if(vt==='gcv4'){
+    const g=gvw||0;
+    return ap(g<=7500?16049:g<=12000?27186:g<=20000?35313:g<=40000?43950:44242);
+  }
+  if(vt==='3gcv'){
+    if(E===1) return 3139; // A2 e-carts public carrier rate
+    return ap(4492); // public carrier GCV 3W (4492)
+  }
+  if(vt==='3pcv'){
+    if(E===1) return 1648; // e-rickshaw
+    return ap(2539); // 3W Passenger Auto basic rate
+  }
+  if(vt==='taxi'){
+    if(E===1) return cc<=30?5134:cc<=65?6749:8945;
+    return ap(cc<=1000?6040:cc<=1500?7940:10523);
+  }
+  if(vt==='bus') return ap(14343);
+  if(vt==='sbus') return ap(12192);
+  if(vt==='misc') return 7267;
   return 0;
 }
-function pTP(vt,nps,cc,et){const n=IV('nps')||parseInt(nps)||0;if(!n)return 0;const E=parseInt(et)||0;if(vt==='3pcv')return n*(E===0?1134:737);if(vt==='taxi')return n*(cc<=1000?1162:cc<=1500?978:1117);if(vt==='bus')return n*877;if(vt==='sbus')return n*745;return 0;}
+function pTP(vt,nps,cc,et){
+  const n=IV('nps')||parseInt(nps)||0;
+  if(!n)return 0;
+  const E=parseInt(et)||0;
+  const ev=v=>Math.round(v*.85),hy=v=>Math.round(v*.925),ap=v=>E===1?ev(v):E===2?hy(v):v;
+  if(vt==='3pcv'){
+    if(E===1) return n*789; // e-rickshaw passenger rate
+    return n*ap(1214); // 3W passenger auto rate
+  }
+  if(vt==='taxi'){
+    if(E===1) return n*(cc<=30?988:cc<=65?831:949);
+    return n*ap(cc<=1000?1162:cc<=1500?978:1117);
+  }
+  if(vt==='bus') return n*ap(877);
+  if(vt==='sbus') return n*ap(745);
+  if(vt==='misc') return n*60;
+  return 0;
+}
 function lldA(vt,v,isnew){const n=parseFloat(v)||0;if(!n)return 0;if(vt==='pc'&&isnew)return n*50*3;if((vt==='tw'||vt==='tw5y')&&isnew)return n*50*5;return n*50;}
 function pdA(nopd,vt,isnew){
   const n=parseInt(nopd)||0;if(!n)return 0;
@@ -1006,9 +1067,13 @@ function calc(){
 
   const ren = SL('renewalType');
   const isFleet = CK('isFleet'), isObsolete = CK('isObsolete'), isImported = CK('isImported');
-  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported);
+  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et);
   if(policy!=='satp') {
-    T('dtd-limit', `[Office: ${limits.off}% | RO: ${limits.ro}%]`);
+    // wef 10-Jul-2026: No separate RO limit; single OO/Portal limit
+    const limitLabel = limits.off === limits.ro
+      ? `[OO/Portal Limit: ${limits.off}%]`
+      : `[Office: ${limits.off}% | HO via RO: ${limits.ro}%]`;
+    T('dtd-limit', limitLabel);
   } else {
     T('dtd-limit', '');
   }

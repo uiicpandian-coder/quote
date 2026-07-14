@@ -704,8 +704,7 @@ pc,*,*,0,100,0,999999,10.01,99,80,80
 gcv4|3gcv,*,*,0,100,0,40000,0,8,90,90
 gcv4|3gcv,*,*,0,100,0,40000,8.01,99,85,85
 gcv4|3gcv,*,*,0,100,40001,999999,0,99,60,60
-taxi|3pcv,*,*,0,100,0,999999,0,99,85,85
-bus,*,*,0,100,0,999999,0,99,40,40
+taxi|3pcv|bus,*,*,0,100,0,999999,0,99,85,85
 sbus,*,*,0,100,0,999999,0,99,95,95
 misc,*,*,0,100,0,999999,0,10,90,90
 misc,*,*,0,100,0,999999,10.01,99,80,80`;
@@ -736,7 +735,7 @@ function resetCircularRules(){
   showToast('🔄 Reset to default Jul 2026 rules!');
 }
 
-function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et) {
+function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps) {
   // wef 10-Jul-2026: Single OO/Portal limit. No separate RO limit.
   // All proposals above OO limit to be referred to HO through RO.
   const etNum = parseInt(et) || 0;
@@ -752,9 +751,20 @@ function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete,
   }
   if(off===0 && ro===0) { off=60; ro=60; } // Fallback
 
-  // Circular Row 9: PCV Bus above 30 pax — Electric → 85% (Row 10: Non-Electric → 40%)
-  // The CSV default is 40 for bus; override to 85 when engine is Electric.
-  if(vt === 'bus' && etNum === 1) { off = 85; ro = 85; }
+  // Circular Rows 8-10: PCV discount depends on Passenger Carrying Capacity (PCC),
+  // NOT on the app's vehicle-type label (taxi / 3W PCV / Bus).
+  // Row 8:  PCC upto 30 passengers, incl. Taxi — Electric & Non-Electric → 85%
+  // Row 9:  PCC above 30 passengers — Electric → 85%
+  // Row 10: PCC above 30 passengers — Non-Electric → 40%
+  if(['taxi','3pcv','bus'].includes(vt)) {
+    const pcc = nps || 0;
+    if(pcc > 30) {
+      off = (etNum === 1) ? 85 : 40;
+      ro = off;
+    } else {
+      off = 85; ro = 85;
+    }
+  }
 
   const isHeavyGcv = ['gcv4','3gcv'].includes(vt) && gvw > 40000;
 
@@ -853,7 +863,7 @@ function validate(){
     const odd = N('odd');
     const isHoReferral = CK('isRoApproved'); // Renamed in UI: HO Referral (via RO)
     const etVal = parseInt(SL('etype')) || 0;
-    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported, etVal);
+    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported, etVal, IV('nps'));
     
     const maxLimit = limits.off; // Single limit — RO limit = OO limit per new circular
     
@@ -1067,7 +1077,7 @@ function calc(){
 
   const ren = SL('renewalType');
   const isFleet = CK('isFleet'), isObsolete = CK('isObsolete'), isImported = CK('isImported');
-  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et);
+  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps);
   if(policy!=='satp') {
     // wef 10-Jul-2026: No separate RO limit; single OO/Portal limit
     const limitLabel = limits.off === limits.ro

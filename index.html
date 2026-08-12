@@ -1143,22 +1143,25 @@ function pTP(vt,nps,cc,et){
   if(vt==='misc') return n*60;
   return 0;
 }
-function lldA(vt,v,isnew){const n=parseFloat(v)||0;if(!n)return 0;if(vt==='pc'&&isnew)return n*50*3;if((vt==='tw'||vt==='tw5y')&&isnew)return n*50*5;return n*50;}
+function termMult(vt,isnew){
+  if(vt==='pc3y') return 3;
+  if(vt==='tw5y') return 5;
+  if(vt==='pc'&&isnew) return 3;
+  if(vt==='tw'&&isnew) return 5;
+  return 1;
+}
+function lldA(vt,v,isnew){const n=parseFloat(v)||0;if(!n)return 0;return n*50*termMult(vt,isnew);}
 function pdA(nopd,vt,isnew){
   const n=parseInt(nopd)||0;if(!n)return 0;
   const si=parseFloat(SL('pdSI'))||100000;
   const r=(si/10000)*5; // ₹5 per ₹10K SI per person
-  if(vt==='pc'&&isnew)return n*r*3;
-  if((vt==='tw'||vt==='tw5y')&&isnew)return n*r*5;
-  return n*r;
+  return n*r*termMult(vt,isnew);
 }
 function upA(nopp,vt,isnew){
   const n=parseInt(nopp)||0;if(!n)return 0;
   const si=parseFloat(SL('upaSI'))||100000;
   const r=(si/10000)*5; // ₹5 per ₹10K SI per person
-  if(vt==='pc'&&isnew)return n*r*3;
-  if((vt==='tw'||vt==='tw5y')&&isnew)return n*r*5;
-  return n*r;
+  return n*r*termMult(vt,isnew);
 }
 
 /* ─── MAIN CALCULATE ─── */
@@ -1256,27 +1259,29 @@ function calc(){
   if(policy!=='saod'){
     const btp=bTP(VT,cc,gvw,nps,et,isnew);
     const ptp=pTP(VT,nps,cc,et);
+    const tm=termMult(VT,isnew);
     const lld_=lldA(VT,lld,isnew);
     const paod=paodv==='1'?275:paodv==='3'?705:paodv==='5'?1100:0;
     const pd=pdA(nopd,VT,isnew),up=upA(nopp,VT,isnew);
-    const platpa=parseFloat(SL('platpa'))||0;
-    const llnfpp_amt=llnfpp*75;
-    const gtp=GE?100:0,lpgtp=LPG?60:0,trtp=trod>0?2485:0;
+    const platpa=(parseFloat(SL('platpa'))||0)*tm;
+    const llnfpp_amt=llnfpp*75*tm;
+    const gtp=(GE?100:0)*tm,lpgtp=(LPG?60:0)*tm,trtp=(trod>0?2485:0)*tm;
     const ttp=btp+ptp+lld_+paod+pd+up+platpa+gtp+lpgtp+trtp+llnfpp_amt;
     ttpR=Math.round(ttp);
     gttp=isgcv?Math.round(btp)*.05+Math.round(ptp+lld_+paod+pd+up+platpa+gtp+lpgtp+trtp+llnfpp_amt)*.18:ttpR*.18;
 
+    const tmS=tm>1?` (×${tm})`:'';
     TP.push(['Basic Liability',rpd(btp),'ac',false]);
     if(ptp>0)   TP.push(['Passenger Liability',rpd(ptp),'',false]);
-    if(lld_>0)  TP.push(['LL Paid Driver/Cleaner',rpd(lld_),'',false]);
+    if(lld_>0)  TP.push(['LL Paid Driver/Cleaner'+tmS,rpd(lld_),'',false]);
     if(paod>0)  TP.push(['Personal Accident to Owner-Driver',rpd(paod),'',false]);
-    if(pd>0)    TP.push([`PA Paid Drivers (${IV('nopd')} × SI ₹${(parseFloat(SL('pdSI'))||0).toLocaleString('en-IN')})`,rpd(pd),'',false]);
-    if(up>0)    TP.push([`PA Unnamed Psgr (${IV('nopp')} × SI ₹${(parseFloat(SL('upaSI'))||0).toLocaleString('en-IN')})`,rpd(up),'',false]);
-    if(platpa>0) TP.push(['Platinum PA Occupants',rpd(platpa),'',false]);
-    if(llnfpp_amt>0) TP.push(['LL Non-Fare Psgr',rpd(llnfpp_amt),'',false]);
-    if(gtp>0)   TP.push(['Geo Extension (TP)',rpd(gtp),'',false]);
-    if(lpgtp>0) TP.push(['LPG/CNG TP',rpd(lpgtp),'',false]);
-    if(trtp>0)  TP.push(['Trailer TP',rpd(trtp),'',false]);
+    if(pd>0)    TP.push([`PA Paid Drivers (${IV('nopd')} × SI ₹${(parseFloat(SL('pdSI'))||0).toLocaleString('en-IN')})${tmS}`,rpd(pd),'',false]);
+    if(up>0)    TP.push([`PA Unnamed Psgr (${IV('nopp')} × SI ₹${(parseFloat(SL('upaSI'))||0).toLocaleString('en-IN')})${tmS}`,rpd(up),'',false]);
+    if(platpa>0) TP.push(['Platinum PA Occupants'+tmS,rpd(platpa),'',false]);
+    if(llnfpp_amt>0) TP.push(['LL Non-Fare Psgr'+tmS,rpd(llnfpp_amt),'',false]);
+    if(gtp>0)   TP.push(['Geo Extension (TP)'+tmS,rpd(gtp),'',false]);
+    if(lpgtp>0) TP.push(['LPG/CNG TP'+tmS,rpd(lpgtp),'',false]);
+    if(trtp>0)  TP.push(['Trailer TP'+tmS,rpd(trtp),'',false]);
   }
 
   const grand=Math.ceil(todR+god+ttpR+gttp+1);

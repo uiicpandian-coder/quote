@@ -227,7 +227,11 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
     <div class="pi"><strong>Risk Start Date:</strong><span id="pi-rsdate">—</span></div>
     <div class="pi"><strong>Vehicle Age:</strong><span id="pi-age">—</span></div>
     <div class="pi"><strong>Zone:</strong><span id="pi-zone">—</span></div>
-    <div class="pi"><strong>IDV (₹):</strong><span id="pi-idv">—</span></div>
+    <div class="pi"><strong>Total IDV (₹):</strong><span id="pi-idv">—</span></div>
+    <div class="pi" id="pi-idv-veh-row" style="display:none"><strong>‣ Vehicle IDV:</strong><span id="pi-idv-veh">—</span></div>
+    <div class="pi" id="pi-idv-ela-row" style="display:none"><strong>‣ Electrical IDV:</strong><span id="pi-idv-ela">—</span></div>
+    <div class="pi" id="pi-idv-nela-row" style="display:none"><strong>‣ Non-Elec. IDV:</strong><span id="pi-idv-nela">—</span></div>
+    <div class="pi" id="pi-idv-trod-row" style="display:none"><strong>‣ Trailer IDV:</strong><span id="pi-idv-trod">—</span></div>
     <div class="pi"><strong>NCB %:</strong><span id="pi-ncb">—</span></div>
     <div class="pi"><strong>Add-Ons:</strong><span id="pi-addons">—</span></div>
     <div class="pi"><strong>Remarks:</strong><span id="pi-remarks">—</span></div>
@@ -456,7 +460,8 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
         </div>
         <div class="fg"><label>Towing Amount (₹)</label><input type="number" id="towAmt" placeholder="0" onchange="calc()"></div>
       </div>
-      <div class="cbg" style="margin-bottom:8px"><input type="checkbox" id="EVP" onchange="calc()"><label for="EVP">EV Protect (EV / Hybrid only)</label></div>
+      <div class="cbg" style="margin-bottom:2px"><input type="checkbox" id="EVP" onchange="calc()"><label for="EVP">EV Protect (EV / Hybrid only)</label></div>
+      <div class="em warn" id="evp-note" style="display:none;margin-bottom:8px;">EV Protect for commercial PCV/GCV is available only up to 3 years' vehicle age — not applicable here.</div>
     </div>
     <div class="st" id="title-liability-addons" style="margin-top:4px">Liability Add-Ons</div>
     <div id="liability-addons-content">
@@ -1081,7 +1086,18 @@ function rtiA(vt,age,idv){
   const i=age<=1?0:age<=2?1:age<=3?2:-1;
   return i<0?0:idv*t[i];
 }
-function evpA(et,age,idv){if(et==1){const t=[.0025,.0030,.0035,.0040,.0050];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}if(et==2){const t=[.0015,.0020,.0025,.0030,.0035];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}return 0;}
+function evpA(et,age,idv,vt){
+  const commercialVTs=['gcv4','3gcv','bus','sbus','3pcv','taxi'];
+  if(commercialVTs.includes(vt)){
+    if(et!=1) return 0; // EV Protect for commercial vehicles applies to All-Electric PCV/GCV only
+    if(age>=3) return 0; // Applicable up to 3 years only
+    const t=[.0030,.0035,.0040];
+    return idv*t[age<1?0:age<2?1:2];
+  }
+  if(et==1){const t=[.0025,.0030,.0035,.0040,.0050];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}
+  if(et==2){const t=[.0015,.0020,.0025,.0030,.0035];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}
+  return 0;
+}
 function npA(vt,idv){return['pc','pc3y','tw','tw5y'].includes(vt)?idv*.0015:idv*.0024;}
 function empA(vt,e){if(!e)return 0;if(['tw','tw5y'].includes(vt))return e*.02;if(['taxi','pc','pc3y'].includes(vt))return e*.066;return e*.03;}
 function rsaA(vt){if(['tw','tw5y'].includes(vt))return 25;if(['pc','pc3y'].includes(vt))return 50;if(vt==='taxi')return 75;if(vt==='gcv4')return 200;return 50;}
@@ -1216,7 +1232,9 @@ function calc(){
     const rsa=RSA?rsaA(VT):0,np_=NP?npA(VT,idv):0,em=emp>0?empA(VT,emp):0;
     const tw_=tow>0?(tow<=10000?tow*.05:tow*.075):0;
     const gd_=GE?400:0,lpgod=LPG?adis*.05:0,ot_=OT?idv*.005:0;
-    const evp=EVP?evpA(et,age,idv):0;
+    const evp=EVP?evpA(et,age,idv,VT):0;
+    const commercialVTs=['gcv4','3gcv','bus','sbus','3pcv','taxi'];
+    G('evp-note').style.display=(EVP && commercialVTs.includes(VT) && (et!=1 || age>=3))?'block':'none';
     const at_disc=AT?Math.min(500, bod*0.025):0;
 
     // NCB base: basicOD−disc + nilDep + imt23 + RTI + lpgOD + OT + ELA_ad + NELA_ad + TrOD_ad
@@ -1310,7 +1328,22 @@ function calc(){
   T('pi-cc',(SL('etype')==='0'?'ICE ':SL('etype')==='1'?'EV ':'Hybrid ')+(N('cc')||'—')+' CC/KW');
   T('pi-age',age.toFixed(2)+' yrs');
   T('pi-zone','Zone '+z);
-  T('pi-idv',policy==='satp'?'—':'₹ '+(N('oldidv')||0).toLocaleString('en-IN'));
+  T('pi-idv',policy==='satp'?'—':'₹ '+((N('oldidv')||0)+(N('ELA')||0)+(N('NELA')||0)+(N('TrOD')||0)).toLocaleString('en-IN'));
+  if(policy!=='satp' && (N('ELA')||N('NELA')||N('TrOD'))){
+    G('pi-idv-veh-row').style.display='';
+    T('pi-idv-veh','₹ '+(N('oldidv')||0).toLocaleString('en-IN'));
+    if(N('ELA')>0){G('pi-idv-ela-row').style.display='';T('pi-idv-ela','₹ '+N('ELA').toLocaleString('en-IN'));}
+    else G('pi-idv-ela-row').style.display='none';
+    if(N('NELA')>0){G('pi-idv-nela-row').style.display='';T('pi-idv-nela','₹ '+N('NELA').toLocaleString('en-IN'));}
+    else G('pi-idv-nela-row').style.display='none';
+    if(N('TrOD')>0){G('pi-idv-trod-row').style.display='';T('pi-idv-trod','₹ '+N('TrOD').toLocaleString('en-IN'));}
+    else G('pi-idv-trod-row').style.display='none';
+  } else {
+    G('pi-idv-veh-row').style.display='none';
+    G('pi-idv-ela-row').style.display='none';
+    G('pi-idv-nela-row').style.display='none';
+    G('pi-idv-trod-row').style.display='none';
+  }
   T('pi-ncb',policy==='satp'?'—':SL('ncbd')+'%');
   const gvwVTs=['gcv4','3gcv','bus','sbus','3pcv','taxi'];
   T('pi-gvw', gvwVTs.includes(VT) && gvw ? gvw+' Kg' : '—');
@@ -1372,7 +1405,7 @@ function renderTable(tbid,tfid,OD,TP,tod,god,ttp,gttp,isgcv,isPdf){
       <td class="vl">${gttpR}</td>
     </tr>
     <tr style="${isPdf ? 'background:#eff6ff; border-top:2px solid #1a4a8a; font-size:14px; font-weight:800; color:#0f172a;' : 'background:rgba(11,87,164,.12); font-size:13px; font-weight:800; border-top:1px solid rgba(11,87,164,.3); color:#0b3d78;'}">
-      <td class="lb" colspan="2" style="text-align:right; padding:10px;"><strong>Net Premium</strong></td>
+      <td class="lb" colspan="2" style="text-align:right; padding:10px;"><strong>Nett Premium</strong></td>
       <td class="sp"></td>
       <td class="vl" colspan="2" style="text-align:left; padding:10px;"><strong>₹ ${totPremR}</strong></td>
     </tr>

@@ -632,6 +632,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   updateFormFieldsState();
   updateLpgKitRequirement();
+  syncVTState();
   calc();
 
   // Enter key = Calculate Premium (except inside the CSV rules textarea)
@@ -884,23 +885,19 @@ function updateIdvWords(){
   el.textContent='₹ '+numberToWords(v)+' Rupees Only';
 }
 
-function swVT(vt,btn){
-  VT=vt;
-  document.querySelectorAll('.vt').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  // Show/hide required markers
+function syncVTState(){
+  const vt=VT;
   const gvwR=['gcv4'];
   const npsR=['bus','sbus','3pcv','taxi'];
   const ccR=['pc','pc3y','tw','tw5y','taxi'];
   G('gvw-star').style.display=gvwR.includes(vt)?'':'none';
   G('nps-star').style.display=npsR.includes(vt)?'':'none';
   G('cc-star').style.display=ccR.includes(vt)?'':'none';
-  // Platinum PA only for Private Cars
   const isPc=['pc','pc3y'].includes(vt);
   const platEl=G('fg-platpa');
   if(platEl) platEl.style.display=isPc?'':'none';
   if(!isPc && G('platpa')) G('platpa').value='0';
-  
+
   const lkEl=G('LK');
   if(lkEl){
     if(isPc){
@@ -912,11 +909,15 @@ function swVT(vt,btn){
     }
   }
 
-  // IMT-23 applies only to GCV, Misc-D and PCV Bus/School Bus classes (Indian Motor Tariff) — NOT Taxi or 3W PCV
-  const imt23VTs=['gcv4','3gcv','misc','bus','sbus'];
+  const imt23VTs=['gcv4','3gcv','misc','bus','sbus','3pcv'];
   const imt23El=G('imt23');
   if(imt23El) imt23El.checked = imt23VTs.includes(vt);
-
+}
+function swVT(vt,btn){
+  VT=vt;
+  document.querySelectorAll('.vt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  syncVTState();
   calc();
 }
 
@@ -1405,7 +1406,7 @@ function renderTable(tbid,tfid,OD,TP,tod,god,ttp,gttp,isgcv,isPdf){
       <td class="vl">${gttpR}</td>
     </tr>
     <tr style="${isPdf ? 'background:#eff6ff; border-top:2px solid #1a4a8a; font-size:14px; font-weight:800; color:#0f172a;' : 'background:rgba(11,87,164,.12); font-size:13px; font-weight:800; border-top:1px solid rgba(11,87,164,.3); color:#0b3d78;'}">
-      <td class="lb" colspan="2" style="text-align:right; padding:10px;"><strong>Nett Premium</strong></td>
+      <td class="lb" colspan="2" style="text-align:right; padding:10px;"><strong>Net Premium</strong></td>
       <td class="sp"></td>
       <td class="vl" colspan="2" style="text-align:left; padding:10px;"><strong>₹ ${totPremR}</strong></td>
     </tr>
@@ -1509,6 +1510,12 @@ async function generatePdfBlob(){
   return pdf.output('blob');
 }
 
+function vtCategory(vt){
+  if(vt==='pc'||vt==='pc3y') return 'PrivateCar';
+  if(vt==='tw'||vt==='tw5y') return 'TwoWheeler';
+  if(vt==='misc') return 'Misc';
+  return 'Commercial'; // gcv4, 3gcv, 3pcv, taxi, bus, sbus
+}
 async function doShare(){
   if(!validate()){showToast(window.customToast ? '⚠️ ' + window.customToast : '⚠️ Please fix the highlighted errors before sharing.');return;}
   saveQuoteToHistory(true);
@@ -1519,7 +1526,8 @@ async function doShare(){
     const blob=await generatePdfBlob();
     const name=G('pname').value||'Quotation';
     const regno=G('regno').value||'';
-    const fname=`UIIC_Quote_${name.replace(/\s+/g,'_')}${regno?'_'+regno:''}.pdf`;
+    const cat=vtCategory(VT);
+    const fname=`UIIC_${cat}_${regno?regno.replace(/\s+/g,''):'Quotation'}.pdf`;
     const file=new File([blob],fname,{type:'application/pdf'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       await navigator.share({title:'UIIC Premium Quotation',text:`Premium Quotation for ${name}${regno?' ('+regno+')':''}`,files:[file]});

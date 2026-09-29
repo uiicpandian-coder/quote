@@ -984,12 +984,18 @@ function validate(){
     const age=getAge();
     const ncb=parseFloat(SL('ncbd'))||0;
     const isPc=['pc','pc3y','tw','tw5y'].includes(VT);
-    if(isPc && age > 5){
+    if(isPc && age > 6.5){
+      sErr('ncbd','Nil Dep not available: vehicle age above 6.5 yrs.');ok=false;
+      window.customToast = 'Nil Dep not available: vehicle age above 6.5 yrs.';
+    } else if(!isPc && age > 4.5){
+      sErr('ncbd','Nil Dep not available: vehicle age above 4.5 yrs.');ok=false;
+      window.customToast = 'Nil Dep not available: vehicle age above 4.5 yrs.';
+    } else if(isPc && age > 4.5){
       if((ren==='uiic' && ncb < 25) || (ren==='other' && ncb < 35) || (ren==='new')){
         sErr('ncbd','Check NCB since Nil Dep extension opted.');ok=false;
         window.customToast = 'Check NCB since Nil Dep extension opted.';
       }
-    } else if(!isPc && age > 3){
+    } else if(!isPc && age > 2.5){
       if((ren==='uiic' && ncb < 20) || (ren==='other' && ncb < 25) || (ren==='new')){
         sErr('ncbd','Check NCB since Nil Dep extension opted.');ok=false;
         window.customToast = 'Check NCB since Nil Dep extension opted.';

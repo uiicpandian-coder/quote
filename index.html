@@ -1220,8 +1220,8 @@ function calc(){
   const OD=[];
 
   if(policy!=='satp'){
-    const bod=idv>0?basicODp(odr,idv,VT,gvw,nps):0;
-    const elaod=ela*.04,nelaod=nela*(odr/100),trod_=trod*.0105;
+    const bod=idv>0?basicODp(odr,idv+nela,VT,gvw,nps):0; // IDV = vehicle IDV + non-electrical accessories
+    const elaod=ela*.04,nelaod=0,trod_=trod*.0105; // NEA already inside IDV above
 
     // Nil dep on (bod+elaod+nelaod+trod_) BEFORE discount
     let nd=0,ndp=0;

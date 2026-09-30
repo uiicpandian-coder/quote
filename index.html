@@ -1220,8 +1220,8 @@ function calc(){
   const OD=[];
 
   if(policy!=='satp'){
-    const bod=idv>0?basicODp(odr,idv+nela,VT,gvw,nps):0; // IDV = vehicle IDV + non-electrical accessories
-    const elaod=ela*.04,nelaod=0,trod_=trod*.0105; // NEA already inside IDV above
+    const bod=idv>0?basicODp(odr,idv,VT,gvw,nps):0;
+    const elaod=ela*.04,nelaod=nela*(odr/100),trod_=trod*.0105;
 
     // Nil dep on (bod+elaod+nelaod+trod_) BEFORE discount
     let nd=0,ndp=0;
@@ -1250,7 +1250,8 @@ function calc(){
 
     // NCB base: basicOD−disc + nilDep + imt23 + RTI + lpgOD + OT + ELA_ad + NELA_ad + TrOD_ad
     const elaad=elaod*(1-dp/100),nelaad=nelaod*(1-dp/100),trad=trod_*(1-dp/100);
-    const ncbBase=bod-disc+nd+i23+rti+lpgod+ot_+elaad+nelaad+trad;
+    // NCB applies on (basic OD + accessories + trailer) AFTER discount, plus nilDep/IMT23/RTI/LPG/OT
+    const ncbBase=adis+nd+i23+rti+lpgod+ot_;
     const ncbAmt=ncbBase*ncb/100;
 
     const tod=bod+elaod+nelaod+trod_+nd-disc+i23-ncbAmt+ep+cm+rti+lk+rsa+np_+em+tw_+tyre+gd_+lpgod+ot_+evp-at_disc;

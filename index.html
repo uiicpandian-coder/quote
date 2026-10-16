@@ -1105,6 +1105,12 @@ function evpA(et,age,idv,vt){
     const t=[.0030,.0035,.0040];
     return idv*t[age<1?0:age<2?1:2];
   }
+  if(['tw','tw5y'].includes(vt)&&et==1){
+    // All-Electric Two Wheeler EV Protect: <1yr 0.20%, 1-<2yr 0.30%, 2-<3yr 0.35% of IDV (age bands mapped as 0.5 / 1.5 / 2.5)
+    if(age>=2.5) return 0;
+    const t=[.0020,.0030,.0035];
+    return idv*t[age<.5?0:age<1.5?1:2];
+  }
   if(et==1){const t=[.0025,.0030,.0035,.0040,.0050];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}
   if(et==2){const t=[.0015,.0020,.0025,.0030,.0035];return idv*t[age<.5?0:age<1.5?1:age<2.5?2:age<3.5?3:4];}
   return 0;

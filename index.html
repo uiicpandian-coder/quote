@@ -407,13 +407,14 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
         </select>
         <span class="em" id="e-ncbd"></span>
       </div>
-      <div class="fg" id="fg-paodt"><label>PA Owner-Driver</label>
+      <div class="fg" id="fg-paodt"><label>Owner PA</label>
         <select id="paodt" onchange="calc()">
           <option value="0">Not Required</option>
-          <option value="1">1 Year — ₹275</option>
-          <option value="3">3 Years — ₹705</option>
-          <option value="5">5 Years — ₹1,100</option>
+          <option value="1">1 Year — ₹325</option>
+          <option value="3">3 Years — ₹839</option>
+          <option value="5">5 Years — ₹1,316</option>
         </select>
+        <span style="font-size:9px;color:#64748b;font-weight:700;margin-top:2px;">Owner PA rates from 29 Oct</span>
       </div>
       <div class="fg" id="fg-lld"><label>LL Paid Driver/Cleaner</label>
         <input type="number" id="lld" min="0" placeholder="No. of persons" onchange="calc()">
@@ -1297,7 +1298,7 @@ function calc(){
     const ptp=pTP(VT,nps,cc,et);
     const tm=termMult(VT,isnew);
     const lld_=lldA(VT,lld,isnew);
-    const paod=paodv==='1'?275:paodv==='3'?705:paodv==='5'?1100:0;
+    const paod=paodv==='1'?325:paodv==='3'?839:paodv==='5'?1316:0;
     const pd=pdA(nopd,VT,isnew),up=upA(nopp,VT,isnew);
     const platpa=(parseFloat(SL('platpa'))||0)*tm;
     const llnfpp_amt=llnfpp*75*tm;
@@ -1310,7 +1311,7 @@ function calc(){
     TP.push(['Basic Liability',rpd(btp),'ac',false]);
     if(ptp>0)   TP.push(['Passenger Liability',rpd(ptp),'',false]);
     if(lld_>0)  TP.push(['LL Paid Driver/Cleaner'+tmS,rpd(lld_),'',false]);
-    if(paod>0)  TP.push(['Personal Accident to Owner-Driver',rpd(paod),'',false]);
+    if(paod>0)  TP.push(['Owner PA',rpd(paod),'',false]);
     if(pd>0)    TP.push([`PA Paid Drivers (${IV('nopd')} × SI ₹${(parseFloat(SL('pdSI'))||0).toLocaleString('en-IN')})${tmS}`,rpd(pd),'',false]);
     if(up>0)    TP.push([`PA Unnamed Psgr (${IV('nopp')} × SI ₹${(parseFloat(SL('upaSI'))||0).toLocaleString('en-IN')})${tmS}`,rpd(up),'',false]);
     if(platpa>0) TP.push(['Platinum PA Occupants'+tmS,rpd(platpa),'',false]);

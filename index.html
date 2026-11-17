@@ -269,7 +269,7 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
   </div>
 </header>
 <div id="circular-banner" style="max-width:1400px;margin:8px auto 0;padding:6px 16px;background:rgba(11,87,164,.08);border:1px solid rgba(11,87,164,.25);border-radius:10px;font-size:11px;color:#073d73;font-weight:700;text-align:center;letter-spacing:.3px;">
-  📋 Discount rates applied as per Circular <span id="circ-ref">HO:MOT:OD:CIR:15:2026-27</span> dated <span id="circ-dated">20.07.2026</span> — effective (wef) <span id="circ-wef">21.07.2026</span>
+  📋 Discount limits applied as per latest HO circular — separate maximum discount for proposals <b>with NCB</b> / <b>without NCB</b>
 </div>
 
 <div class="wrap">
@@ -548,13 +548,13 @@ input.warnx,select.warnx{border-color:#d97706!important;background:rgba(217,119,
     <div class="st" style="color:#d97706;margin-bottom:5px;">⚙️ Circular Limits Editor (CSV)</div>
     <div style="font-size:10px;color:#64748b;margin-bottom:8px;line-height:1.4;">
       Paste circular rules here as CSV.<br>
-      Format: <code>VehicleTypes, PolicyTypes, RenewalTypes, NCBMin, NCBMax, GVWMin, GVWMax, AgeMin, AgeMax, OfficeLimit, ROLimit</code><br>
-      Use <code>*</code> for any, or <code>|</code> to separate multiples (e.g. <code>tw|tw5y</code>). Note: wef 10-Jul-2026 ROLimit = OfficeLimit (no separate RO limits).
+      Format: <code>VehicleTypes, PolicyTypes, RenewalTypes, GVWMin, GVWMax, AgeMin, AgeMax, CCMin, CCMax, WithNCB, WithoutNCB</code><br>
+      Use <code>*</code> for any, or <code>|</code> to separate multiples (e.g. <code>tw|tw5y</code>). First matching row wins. WithNCB applies when NCB &gt; 0 (and for brand-new / long-term bundled); WithoutNCB when NCB = 0.
     </div>
     <textarea id="csv-rules" style="width:100%;height:100px;background:#ffffff;border:1px solid rgba(15,23,42,.14);border-radius:5px;color:#1e293b;font-family:monospace;font-size:10px;padding:8px;white-space:pre;"></textarea>
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button type="button" onclick="loadCircularRules(G('csv-rules').value, true)" style="background:#d97706;border:none;color:#fff;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">💾 Save & Apply Rules</button>
-      <button type="button" onclick="resetCircularRules()" style="background:transparent;border:1px solid rgba(15,23,42,.16);color:#64748b;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;">🔄 Reset to Default (21-Jul-2026)</button>
+      <button type="button" onclick="resetCircularRules()" style="background:transparent;border:1px solid rgba(15,23,42,.16);color:#64748b;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;">🔄 Reset to Default (Latest Circular)</button>
     </div>
   </div>
 
@@ -615,7 +615,7 @@ let policy='package';
 let circularRules=[];
 
 /* ─── Init ─── */
-const CIRCULAR_VERSION = 'v6'; // Bumped: corrected pc3y (1+3 Pvt Car) max disc 70→90, tw5y (1+5 Two Wheeler) max disc 60→80
+const CIRCULAR_VERSION = 'v7'; // v7: new circular structure — separate max discount for proposals WITH NCB / WITHOUT NCB
 document.addEventListener('DOMContentLoaded',()=>{
   const t=new Date().toISOString().split('T')[0];
   G('rsdate').value=t;
@@ -755,23 +755,29 @@ function updateLpgKitRequirement(){
 }
 
 /* ─── Circular Rules (Circular 15, HO:MOT:OD:CIR:15:2026-27, wef 21-Jul-2026) ─── */
-// NOTE: New circular has NO separate RO limit. ROLimit = OfficeLimit (same value).
+// Latest circular structure: every category has TWO limits —
+//   WithNCB    = max discount for proposals with NCB (NCB > 0)
+//   WithoutNCB = max discount for proposals without NCB (NCB = 0)
+// The old "Nil NCB → reduce DTD by 10%" rule (Note 7) is now built into the WithoutNCB column.
 // All proposals above OO/Portal limit must be referred to HO through RO.
 // Fleet discount concept has been removed.
-const defaultCsv = `VehicleTypes,PolicyTypes,RenewalTypes,NCBMin,NCBMax,GVWMin,GVWMax,AgeMin,AgeMax,OfficeLimit,ROLimit
-tw5y,*,*,0,100,0,999999,0,99,80,80
-tw,*,*,0,100,0,999999,0,99,80,80
-pc3y,*,*,0,100,0,999999,0,99,90,90
-pc,*,*,0,100,0,999999,0,10,90,90
-pc,*,*,0,100,0,999999,10.01,99,80,80
-gcv4|3gcv,*,*,0,100,0,40000,0,8,90,90
-gcv4|3gcv,*,*,0,100,0,40000,8.01,99,85,85
-gcv4|3gcv,*,*,0,100,40001,999999,0,99,60,60
-taxi|bus,*,*,0,100,0,999999,0,99,85,85
-3pcv,*,*,0,100,0,999999,0,99,90,90
-sbus,*,*,0,100,0,999999,0,99,95,95
-misc,*,*,0,100,0,999999,0,10,90,90
-misc,*,*,0,100,0,999999,10.01,99,80,80`;
+const defaultCsv = `VehicleTypes,PolicyTypes,RenewalTypes,GVWMin,GVWMax,AgeMin,AgeMax,CCMin,CCMax,WithNCB,WithoutNCB
+tw5y,*,*,0,999999,0,99,0,99999,60,60
+tw,*,*,0,999999,0,99,0,99999,80,70
+pc,saod,*,0,999999,0,99,0,99999,90,70
+pc3y,*,*,0,999999,0,99,0,99999,90,80
+pc,*,*,0,999999,0,10,0,99999,90,80
+pc,*,*,0,999999,10.01,99,0,99999,80,70
+gcv4|3gcv,*,*,0,40000,0,8,0,99999,90,80
+gcv4|3gcv,*,*,0,40000,8.01,99,0,99999,85,75
+gcv4|3gcv,*,*,40001,999999,0,99,0,99999,60,60
+bus,*,*,0,999999,0,99,0,99999,85,75
+taxi,*,*,0,999999,0,99,0,1200,75,65
+taxi,*,*,0,999999,0,99,1200.01,99999,85,75
+3pcv,*,*,0,999999,0,99,0,99999,90,80
+sbus,*,*,0,999999,0,99,0,99999,95,85
+misc,*,*,0,999999,0,10,0,99999,90,80
+misc,*,*,0,999999,10.01,99,0,99999,80,70`;
 
 function loadCircularRules(csvStr, save=false){
   if(save){localStorage.setItem('circularCsv', csvStr); showToast('✅ Circular rules saved & applied successfully!');}
@@ -784,10 +790,10 @@ function loadCircularRules(csvStr, save=false){
     if(p.length<11) continue;
     circularRules.push({
       vt: p[0], pol: p[1], ren: p[2],
-      nMin: parseFloat(p[3]), nMax: parseFloat(p[4]),
-      gMin: parseFloat(p[5]), gMax: parseFloat(p[6]),
-      aMin: parseFloat(p[7]), aMax: parseFloat(p[8]),
-      off: parseFloat(p[9]), ro: parseFloat(p[10])
+      gMin: parseFloat(p[3]), gMax: parseFloat(p[4]),
+      aMin: parseFloat(p[5]), aMax: parseFloat(p[6]),
+      cMin: parseFloat(p[7]), cMax: parseFloat(p[8]),
+      withN: parseFloat(p[9]), withoutN: parseFloat(p[10])
     });
   }
   if(save) calc();
@@ -796,60 +802,49 @@ function resetCircularRules(){
   localStorage.removeItem('circularCsv');
   localStorage.setItem('circularVersion', CIRCULAR_VERSION);
   loadCircularRules(defaultCsv);
-  showToast('🔄 Reset to default 21-Jul-2026 circular rules!');
+  showToast('🔄 Reset to latest circular rules!');
 }
 
-function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps) {
-  // wef 10-Jul-2026: Single OO/Portal limit. No separate RO limit.
-  // All proposals above OO limit to be referred to HO through RO.
-  let off = 0, ro = 0;
+function getCircularLimit(vt, pol, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps, cc) {
+  // Latest circular: two limits per category — with NCB / without NCB.
+  // Single OO/Portal limit (no separate RO limit). Above it → refer to HO through RO.
+  const ageR = Math.round(age*100)/100;   // avoids gaps like 10.003 between "up to 10" and "more than 10" bands
+  const ccV = cc || 0;
+  // Brand new / long-term bundled proposals carry no NCB by nature — keep them on the "with NCB" limit
+  // (same exemption the old Note 7 had).
+  const isBrandNewOrBundled = (ren === 'new' || vt === 'pc3y' || vt === 'tw5y');
+  const useWithNcb = ncb > 0 || isBrandNewOrBundled;
+  const col = useWithNcb ? 'with NCB' : 'without NCB';
+
+  let lim = null;
   for(let r of circularRules){
     if(r.vt!=='*' && !r.vt.split('|').includes(vt)) continue;
     if(r.pol!=='*' && !r.pol.split('|').includes(pol)) continue;
     if(r.ren!=='*' && !r.ren.split('|').includes(ren)) continue;
-    if(ncb < r.nMin || ncb > r.nMax) continue;
     if(gvw < r.gMin || gvw > r.gMax) continue;
-    if(age < r.aMin || age > r.aMax) continue;
-    off = r.off; ro = r.ro; break;
+    if(ageR < r.aMin || ageR > r.aMax) continue;
+    if(ccV < r.cMin || ccV > r.cMax) continue;
+    lim = useWithNcb ? r.withN : r.withoutN; break;
   }
-  if(off===0 && ro===0) { off=60; ro=60; } // Fallback
+  if(lim===null || isNaN(lim)) lim = 60; // Fallback
 
-  // Circular 15 (HO:MOT:OD:CIR:15:2026-27, wef 21-Jul-2026):
-  // Row 9  "Commercial vehicle – PCV including Taxi – Electric and Non Electric" → flat 85% (Taxi, Bus).
-  //        The old PCC>30 / non-electric 40% tier (Circular 13) has been removed —
-  //        discount is now a single flat rate regardless of passenger capacity or fuel type.
-  // Row 10 "3 Wheeler Passenger Auto" → 90% — a SEPARATE row, not part of the PCV/Taxi bucket.
-  if(['taxi','bus'].includes(vt)) {
-    off = 85; ro = 85;
-  } else if(vt === '3pcv') {
-    off = 90; ro = 90;
-  }
-
+  let off = lim;
   const isHeavyGcv = ['gcv4','3gcv'].includes(vt) && gvw > 40000;
 
-  // Note 7: Nil NCB → reduce DTD by 10% (not applicable for GCVs with GVW > 40000 kg)
-  if(!isHeavyGcv) {
-    const isBrandNewOrBundled = (ren === 'new' || vt === 'pc3y' || vt === 'tw5y');
-    if(ncb === 0 && !isBrandNewOrBundled) { off -= 10; ro -= 10; }
-  }
-
   // Note 6: IDV > Rs 1 Crore → reduce DTD by 10% (not applicable for GCVs with GVW > 40000 kg)
-  if(!isHeavyGcv && idv > 10000000) { off -= 10; ro -= 10; }
+  if(!isHeavyGcv && idv > 10000000) off -= 10;
 
   // Note 8: Obsolete vehicles → max DTD 30% (own renewals only)
-  if(isObsolete && ren==='uiic') { off = Math.min(off, 30); ro = Math.min(ro, 30); }
+  if(isObsolete && ren==='uiic') off = Math.min(off, 30);
 
   // Note 5: IDV > Rs 2 Crore → HO referral (limit = 0)
   // Note 4: Imported vehicles → HO referral (limit = 0)
   // Note 3: Two Wheeler IDV > Rs 50 lakhs → HO referral
-  if(idv > 20000000 || isImported || (['tw','tw5y'].includes(vt) && idv > 5000000)) {
-    off = 0; ro = 0;
-  }
+  if(idv > 20000000 || isImported || (['tw','tw5y'].includes(vt) && idv > 5000000)) off = 0;
 
-  // Note 10: Fleet discount concept has been removed (no fleet bonus)
-  // (isFleet parameter retained for backward compatibility but not applied)
-
-  return { off: Math.max(0, off), ro: Math.max(0, ro) };
+  // Fleet discount concept has been removed (isFleet kept in signature for compatibility only)
+  off = Math.max(0, off);
+  return { off, ro: off, col };
 }
 
 /* ─── Vehicle type switch ─── */
@@ -960,7 +955,7 @@ function validate(){
     const odd = N('odd');
     const isHoReferral = CK('isRoApproved'); // Renamed in UI: HO Referral (via RO)
     const etVal = parseInt(SL('etype')) || 0;
-    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported, etVal, IV('nps'));
+    const limits = getCircularLimit(VT, policy, ren, parseFloat(SL('ncbd'))||0, N('gvw'), getAge(), N('oldidv'), isFleet, isObsolete, isImported, etVal, IV('nps'), N('cc'));
     
     const maxLimit = limits.off; // Single limit — RO limit = OO limit per new circular
     
@@ -969,9 +964,9 @@ function validate(){
       if(!isHoReferral) ok=false;
     } else if(odd > maxLimit) {
       if(isHoReferral) {
-        sWarn('odd', `⚠️ Exceeds OO Limit of ${limits.off}% — Refer to HO through RO`);
+        sWarn('odd', `⚠️ Exceeds OO Limit of ${limits.off}% (${limits.col}) — Refer to HO through RO`);
       } else {
-        sErr('odd', `❌ Exceeds OO/Portal Limit of ${limits.off}% (Tick 'HO Referral' if referred to HO)`); ok=false;
+        sErr('odd', `❌ Exceeds OO/Portal Limit of ${limits.off}% (${limits.col}) (Tick 'HO Referral' if referred to HO)`); ok=false;
       }
     } else {
       cErr('odd');
@@ -1211,12 +1206,10 @@ function calc(){
 
   const ren = SL('renewalType');
   const isFleet = CK('isFleet'), isObsolete = CK('isObsolete'), isImported = CK('isImported');
-  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps);
+  const limits = getCircularLimit(VT, policy, ren, ncb, gvw, age, idv, isFleet, isObsolete, isImported, et, nps, cc);
   if(policy!=='satp') {
     // wef 10-Jul-2026: No separate RO limit; single OO/Portal limit
-    const limitLabel = limits.off === limits.ro
-      ? `[OO/Portal Limit: ${limits.off}%]`
-      : `[Office: ${limits.off}% | HO via RO: ${limits.ro}%]`;
+    const limitLabel = `[OO/Portal Limit: ${limits.off}% ${limits.col}]`;
     T('dtd-limit', limitLabel);
   } else {
     T('dtd-limit', '');
